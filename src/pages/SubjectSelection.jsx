@@ -22,7 +22,12 @@ export default function SubjectSelection() {
     if (!saved) {
       navigate('/');
     } else {
-      setProfile(JSON.parse(saved));
+      try {
+        setProfile(JSON.parse(saved));
+      } catch (e) {
+        localStorage.removeItem('userProfile');
+        navigate('/');
+      }
     }
   }, [navigate]);
 

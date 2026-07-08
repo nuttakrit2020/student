@@ -45,9 +45,17 @@ export default function ProfileSelection() {
       }));
       // Sort by grade, room, number
       studentsList.sort((a, b) => {
-        if (a.grade !== b.grade) return a.grade.localeCompare(b.grade);
-        if (a.room !== b.room) return Number(a.room) - Number(b.room);
-        return Number(a.studentNumber) - Number(b.studentNumber);
+        const gradeA = a.grade || '';
+        const gradeB = b.grade || '';
+        if (gradeA !== gradeB) return gradeA.localeCompare(gradeB);
+        
+        const roomA = Number(a.room) || 0;
+        const roomB = Number(b.room) || 0;
+        if (roomA !== roomB) return roomA - roomB;
+        
+        const numA = Number(a.studentNumber) || 0;
+        const numB = Number(b.studentNumber) || 0;
+        return numA - numB;
       });
       setStudents(studentsList);
     } catch (error) {
@@ -125,9 +133,9 @@ export default function ProfileSelection() {
                   >
                     <User size={20} />
                     <div>
-                      <div style={{ fontWeight: '600', color: 'var(--primary)' }}>{student.studentName}</div>
+                      <div style={{ fontWeight: '600', color: 'var(--primary)' }}>{student.studentName || 'ไม่ระบุชื่อ'}</div>
                       <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                        ชั้น ม.{student.grade.replace('m', '')} ห้อง {student.room} | เลขที่ {student.studentNumber}
+                        ชั้น ม.{(student.grade || '').replace('m', '') || '?'} ห้อง {student.room || '?'} | เลขที่ {student.studentNumber || '?'}
                       </div>
                     </div>
                   </button>
