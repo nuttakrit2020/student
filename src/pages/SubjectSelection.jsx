@@ -48,8 +48,8 @@ export default function SubjectSelection() {
     <div className="animate-fade-in">
       <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ marginBottom: '0.25rem' }}>สวัสดี, {profile.studentName}</h1>
-          <p className="text-muted">ชั้น ม.{profile.grade.replace('m', '')} ห้อง {profile.room} | เลขที่ {profile.studentNumber}</p>
+          <h1 style={{ marginBottom: '0.25rem' }}>สวัสดี, {profile.studentName || 'ไม่ระบุชื่อ'}</h1>
+          <p className="text-muted">ชั้น ม.{(profile.grade || '').replace('m', '') || '?'} ห้อง {profile.room || '?'} | เลขที่ {profile.studentNumber || '?'}</p>
         </div>
         <button className="btn btn-outline" onClick={handleLogout} style={{ padding: '0.5rem 1rem' }}>
           <LogOut size={18} />

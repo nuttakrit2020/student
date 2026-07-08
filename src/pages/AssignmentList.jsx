@@ -130,7 +130,7 @@ export default function AssignmentList() {
         <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: 'var(--radius-sm)', marginBottom: '2rem', border: '1px solid var(--border)' }}>
           <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.875rem' }}>ผู้ส่งงานปัจจุบัน:</p>
           <p style={{ margin: 0, fontWeight: '600', color: 'var(--primary)' }}>
-            {profile.studentName} (ม.{profile.grade.replace('m', '')} ห้อง {profile.room} เลขที่ {profile.studentNumber})
+            {profile.studentName || 'ไม่ระบุชื่อ'} (ม.{(profile.grade || '').replace('m', '') || '?'} ห้อง {profile.room || '?'} เลขที่ {profile.studentNumber || '?'})
           </p>
         </div>
 
