@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import ProfileSelection from './pages/ProfileSelection';
+import Welcome from './pages/Welcome';
+import StudentAuth from './pages/StudentAuth';
+import TeacherAuth from './pages/TeacherAuth';
 import SubjectSelection from './pages/SubjectSelection';
 import AssignmentList from './pages/AssignmentList';
 import TeacherDashboard from './pages/TeacherDashboard';
@@ -21,7 +23,9 @@ function App() {
 
         <main className="container animate-fade-in">
           <Routes>
-            <Route path="/" element={<ProfileSelection />} />
+            <Route path="/" element={<Welcome />} />
+            <Route path="/student-auth" element={<StudentAuth />} />
+            <Route path="/teacher-auth" element={<TeacherAuth />} />
             <Route path="/area" element={<SubjectSelection />} />
             <Route path="/area/:subjectId" element={<AssignmentList />} />
             <Route path="/teacher" element={<TeacherDashboard />} />
