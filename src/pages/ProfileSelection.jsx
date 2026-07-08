@@ -95,6 +95,16 @@ export default function ProfileSelection() {
     }
   };
 
+  const handleTeacherLogin = () => {
+    const pin = prompt('กรุณากรอกรหัสผ่านสำหรับครูผู้สอน:');
+    if (pin === '1234') {
+      localStorage.setItem('teacherAuth', 'true');
+      navigate('/teacher');
+    } else if (pin !== null) {
+      alert('รหัสผ่านไม่ถูกต้อง');
+    }
+  };
+
   if (isLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
@@ -105,6 +115,12 @@ export default function ProfileSelection() {
 
   return (
     <div className="animate-fade-in">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+        <button className="btn btn-outline" onClick={handleTeacherLogin} style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
+          👨‍🏫 สำหรับครูผู้สอน
+        </button>
+      </div>
+
       <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
         <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>ยินดีต้อนรับสู่ระบบส่งงาน</h1>
         <p className="text-muted" style={{ fontSize: '1.1rem' }}>

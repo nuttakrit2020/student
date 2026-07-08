@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ProfileSelection from './pages/ProfileSelection';
 import SubjectSelection from './pages/SubjectSelection';
 import AssignmentList from './pages/AssignmentList';
+import TeacherDashboard from './pages/TeacherDashboard';
 import { BookOpen } from 'lucide-react';
 import './index.css';
 
@@ -23,6 +24,7 @@ function App() {
             <Route path="/" element={<ProfileSelection />} />
             <Route path="/area" element={<SubjectSelection />} />
             <Route path="/area/:subjectId" element={<AssignmentList />} />
+            <Route path="/teacher" element={<TeacherDashboard />} />
           </Routes>
         </main>
       </div>
