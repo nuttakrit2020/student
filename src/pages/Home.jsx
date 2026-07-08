@@ -6,9 +6,9 @@ const GRADES = [
   { id: 'm1', name: 'มัธยมศึกษาปีที่ 1', rooms: 10 },
   { id: 'm2', name: 'มัธยมศึกษาปีที่ 2', rooms: 10 },
   { id: 'm3', name: 'มัธยมศึกษาปีที่ 3', rooms: 10 },
-  { id: 'm4', name: 'มัธยมศึกษาปีที่ 4', rooms: 5 },
-  { id: 'm5', name: 'มัธยมศึกษาปีที่ 5', rooms: 5 },
-  { id: 'm6', name: 'มัธยมศึกษาปีที่ 6', rooms: 5 },
+  { id: 'm4', name: 'มัธยมศึกษาปีที่ 4', rooms: 10 },
+  { id: 'm5', name: 'มัธยมศึกษาปีที่ 5', rooms: 10 },
+  { id: 'm6', name: 'มัธยมศึกษาปีที่ 6', rooms: 10 },
 ];
 
 export default function Home() {
