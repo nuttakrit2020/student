@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
+import ProfileSelection from './pages/ProfileSelection';
 import SubjectSelection from './pages/SubjectSelection';
 import AssignmentList from './pages/AssignmentList';
 import { BookOpen } from 'lucide-react';
@@ -20,9 +20,9 @@ function App() {
 
         <main className="container animate-fade-in">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/class/:gradeId/:roomId" element={<SubjectSelection />} />
-            <Route path="/class/:gradeId/:roomId/subject/:subjectId" element={<AssignmentList />} />
+            <Route path="/" element={<ProfileSelection />} />
+            <Route path="/area" element={<SubjectSelection />} />
+            <Route path="/area/:subjectId" element={<AssignmentList />} />
           </Routes>
         </main>
       </div>

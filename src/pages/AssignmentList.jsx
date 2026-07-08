@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, CheckCircle, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, Upload, CheckCircle, Loader2, Send, Edit3 } from 'lucide-react';
 import { db, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -17,20 +17,27 @@ const LEARNING_AREAS_MAP = {
 };
 
 export default function AssignmentList() {
-  const { gradeId, roomId, subjectId } = useParams();
+  const { subjectId } = useParams();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   
+  const [profile, setProfile] = useState(null);
   const [subjectCode, setSubjectCode] = useState('');
   const [subjectName, setSubjectName] = useState('');
   const [assignmentName, setAssignmentName] = useState('');
-  const [studentName, setStudentName] = useState('');
-  const [studentNumber, setStudentNumber] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const formattedGrade = gradeId.replace('m', 'ม.');
   const areaName = LEARNING_AREAS_MAP[subjectId] || subjectId;
+
+  useEffect(() => {
+    const saved = localStorage.getItem('userProfile');
+    if (!saved) {
+      navigate('/');
+    } else {
+      setProfile(JSON.parse(saved));
+    }
+  }, [navigate]);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -40,6 +47,11 @@ export default function AssignmentList() {
 
   const triggerFileInput = () => {
     fileInputRef.current.click();
+  };
+
+  const handleChangeArea = () => {
+    localStorage.removeItem('savedLearningArea');
+    navigate('/area');
   };
 
   const handleSubmit = async (e) => {
@@ -53,35 +65,34 @@ export default function AssignmentList() {
     try {
       // 1. Upload File to Firebase Storage
       const fileExtension = selectedFile.name.split('.').pop();
-      const fileName = `${studentNumber}_${studentName.replace(/\s+/g, '_')}_${Date.now()}.${fileExtension}`;
-      const storageRef = ref(storage, `assignments/${gradeId}/room_${roomId}/${subjectId}/${subjectCode}/${fileName}`);
+      const fileName = `${profile.studentNumber}_${profile.studentName.replace(/\s+/g, '_')}_${Date.now()}.${fileExtension}`;
+      const storageRef = ref(storage, `assignments/${profile.grade}/room_${profile.room}/${subjectId}/${subjectCode}/${fileName}`);
       
       const uploadResult = await uploadBytes(storageRef, selectedFile);
       const downloadURL = await getDownloadURL(uploadResult.ref);
 
       // 2. Save Data to Firestore
       await addDoc(collection(db, 'submissions'), {
-        grade: gradeId,
-        room: roomId,
+        grade: profile.grade,
+        room: profile.room,
         learningArea: areaName,
         subjectCode: subjectCode.toUpperCase(),
         subjectName: subjectName,
         assignmentTitle: assignmentName,
-        studentName: studentName,
-        studentNumber: Number(studentNumber),
+        studentName: profile.studentName,
+        studentNumber: Number(profile.studentNumber),
         fileUrl: downloadURL,
         fileName: selectedFile.name,
-        submittedAt: serverTimestamp()
+        submittedAt: serverTimestamp(),
+        studentId: profile.id || null
       });
 
-      alert(`ส่งงานสำเร็จ!\nวิชา: ${subjectCode} ${subjectName}\nงาน: ${assignmentName}\nชื่อ: ${studentName} เลขที่ ${studentNumber}`);
+      alert(`ส่งงานสำเร็จ!\nวิชา: ${subjectCode} ${subjectName}\nงาน: ${assignmentName}\nผู้ส่ง: ${profile.studentName}`);
       
       // Reset form
       setSubjectCode('');
       setSubjectName('');
       setAssignmentName('');
-      setStudentName('');
-      setStudentNumber('');
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
 
@@ -93,24 +104,31 @@ export default function AssignmentList() {
     }
   };
 
+  if (!profile) return null;
+
   return (
     <div className="animate-fade-in">
-      <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <button className="btn btn-outline" onClick={() => navigate(-1)} style={{ padding: '0.5rem 1rem' }}>
-          <ArrowLeft size={18} />
-          กลับ
-        </button>
-        <div>
-          <h1 style={{ marginBottom: '0.25rem' }}>กลุ่มสาระ: {areaName}</h1>
-          <p className="text-muted">ชั้น {formattedGrade} ห้อง {roomId} - ฟอร์มส่งงาน</p>
+      <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button className="btn btn-outline" onClick={handleChangeArea} style={{ padding: '0.5rem 1rem' }}>
+            <ArrowLeft size={18} />
+            เปลี่ยนกลุ่มสาระ
+          </button>
+          <div>
+            <h1 style={{ marginBottom: '0.25rem' }}>ส่งงาน: {areaName}</h1>
+            <p className="text-muted">โปรดกรอกข้อมูลวิชาและแนบไฟล์</p>
+          </div>
         </div>
       </div>
 
       <div className="glass-panel delay-1" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
-        <h2 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Send size={24} className="header-icon" />
-          กรอกข้อมูลและแนบไฟล์งาน
-        </h2>
+        <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: 'var(--radius-sm)', marginBottom: '2rem', border: '1px solid var(--border)' }}>
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.875rem' }}>ผู้ส่งงานปัจจุบัน:</p>
+          <p style={{ margin: 0, fontWeight: '600', color: 'var(--primary)' }}>
+            {profile.studentName} (ม.{profile.grade.replace('m', '')} ห้อง {profile.room} เลขที่ {profile.studentNumber})
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit}>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
@@ -152,37 +170,8 @@ export default function AssignmentList() {
               disabled={isSubmitting}
             />
           </div>
-
-          <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '2rem 0' }} />
-
-          <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-            <div className="form-group" style={{ marginBottom: '0' }}>
-              <label className="form-label">เลขที่</label>
-              <input 
-                type="number" 
-                className="form-input" 
-                placeholder="เลขที่" 
-                value={studentNumber}
-                onChange={(e) => setStudentNumber(e.target.value)}
-                required 
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="form-group" style={{ marginBottom: '0' }}>
-              <label className="form-label">ชื่อ - นามสกุล</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="กรอกชื่อ-นามสกุลของคุณ" 
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                required 
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
           
-          <div className="form-group">
+          <div className="form-group" style={{ marginTop: '2rem' }}>
             <label className="form-label">แนบไฟล์งาน (PDF, Image, Word)</label>
             
             <input 
