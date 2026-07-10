@@ -95,3 +95,5 @@ export async function DELETE(request) {
     return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการลบนักเรียน' }, { status: 500 });
   }
 }
+
+export const dynamic = 'force-dynamic';

@@ -121,3 +121,5 @@ export async function DELETE(request) {
     );
   }
 }
+
+export const dynamic = 'force-dynamic';
