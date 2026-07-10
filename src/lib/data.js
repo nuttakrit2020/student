@@ -182,12 +182,12 @@ export async function getSettings() {
   if (db) {
     const d = await getDoc(doc(db, 'config', 'settings'));
     if (d.exists()) return d.data();
-    return { subjectName: "ระบบเก็บงานนักเรียน", className: "ม.1/2569" };
+    return { subjectName: "รายวิชาการออกแบบ 3", className: "ชั้นมัธยมศึกษาปีที่ 3/1-8 เทอม 1/2569" };
   }
 
   const filePath = path.join(dataDir, 'settings.json');
   if (!fs.existsSync(filePath)) {
-    return { subjectName: "ระบบเก็บงานนักเรียน", className: "ม.1/2569" };
+    return { subjectName: "รายวิชาการออกแบบ 3", className: "ชั้นมัธยมศึกษาปีที่ 3/1-8 เทอม 1/2569" };
   }
   return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 }
