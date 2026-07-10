@@ -56,7 +56,7 @@ html {
 
 body {
   font-family: var(--font-th);
-  background: url("https://scontent.fbkk7-2.fna.fbcdn.net/v/t39.30808-6/471235637_502713426159117_8202093593052810530_n.jpg?stp=dst-jpg_tt6&cstp=mx1920x1080&ctp=s1920x1080&_nc_cat=109&ccb=1-7&_nc_sid=cc71e4&_nc_eui2=AeGZ2aW7ZztkRXfVhA0hljMIddiELvwPOtp12IQu_A862n_CY3ecatzJnsqrAY40HiL8rI9yl4tQ3j5LeGEOGcmn&_nc_ohc=xkn214f-8UgQ7kNvwFK09E-&_nc_oc=AdrFc79H3ri0PV8m7thkZfbna53HEphOb9raVkZXEK4GOY8L0QZ3b34W4NZFXJaUalA&_nc_zt=23&_nc_ht=scontent.fbkk7-2.fna&_nc_gid=-bE-7g0FEJwj3UzyfAE2tg&_nc_ss=7b2a8&oh=00_AQDMdx2UvJ_O-KSEKcJaEiROjDM9QTIWxuq7wnRVrCUctQ&oe=6A562CAA") center center / cover fixed, var(--bg-primary);
+  background: url("/bg.png") center center / cover fixed, var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
