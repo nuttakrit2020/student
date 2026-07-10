@@ -108,8 +108,8 @@ export default function LoginPage() {
             <div className="login-icon" style={{ background: 'transparent', boxShadow: 'none', width: '120px', height: '120px' }}>
               <img src="/Nawang.webp" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <h1>{settings.subjectName || 'ระบบเก็บงานนักเรียน'}</h1>
-            <p className="subtitle">{settings.className || 'ม.1/2569'} — เข้าสู่ระบบด้วยรหัสประจำตัว</p>
+            <h1>{settings.subjectName || 'รายวิชาการออกแบบ 3'}</h1>
+            <p className="subtitle">{settings.className || 'ชั้นมัธยมศึกษาปีที่ 3/1-8 เทอม 1/2569'}</p>
 
             <form onSubmit={handleStudentLogin}>
               <div className="input-group">

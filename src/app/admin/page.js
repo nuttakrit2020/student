@@ -668,7 +668,7 @@ export default function AdminPage() {
             />
             <div className="student-details">
               <h2>แดชบอร์ดครู</h2>
-              <p>{subjectName || 'ระบบเก็บงานนักเรียน'} {className || 'ม.1/2569'}</p>
+              <p>{subjectName || 'รายวิชาการออกแบบ 3'} {className || 'ชั้นมัธยมศึกษาปีที่ 3/1-8 เทอม 1/2569'}</p>
             </div>
           </div>
           <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
