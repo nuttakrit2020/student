@@ -726,7 +726,7 @@ export default function AdminPage() {
 
         {/* Tab Content */}
         {activeTab === 'summary' && (
-          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+          <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
             <div className="card-header" style={{ marginBottom: '16px' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📊 ตารางสรุปการส่งงาน</h2>
             </div>
@@ -811,7 +811,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'assignments' && (
-          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+          <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📋 จัดการงาน</h2>
               <button
@@ -892,7 +892,7 @@ export default function AdminPage() {
           const filteredStudents = filterRoom ? summaryData.filter(s => s.student.room === filterRoom) : summaryData;
           
           return (
-            <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
               <div className="card-header" style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>👩‍🎓 รายชื่อนักเรียน ({filteredStudents.length} คน)</h2>
@@ -981,7 +981,7 @@ export default function AdminPage() {
         })()}
 
         {activeTab === 'settings' && (
-          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+          <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
             <div className="card-header" style={{ marginBottom: '16px' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>⚙️ ตั้งค่าระบบ</h2>
             </div>

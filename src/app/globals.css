@@ -232,7 +232,7 @@ body::after {
   letter-spacing: 8px;
   text-align: center;
   font-weight: 600;
-  transition: all 0.3s ease;
+  cursor: pointer; font-family: var(--font-th); transition: all 0.3s ease;
   outline: none;
 }
 
@@ -338,7 +338,7 @@ body::after {
   border-radius: var(--radius-lg);
   padding: 24px;
   box-shadow: var(--shadow-card);
-  transition: all 0.3s ease;
+  cursor: pointer; font-family: var(--font-th); transition: all 0.3s ease;
   animation: fadeIn 0.5s ease;
 }
 
@@ -468,7 +468,7 @@ body::after {
   padding: 36px 20px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  cursor: pointer; font-family: var(--font-th); transition: all 0.3s ease;
   background: rgba(108, 92, 231, 0.03);
   margin-bottom: 16px;
 }
@@ -611,7 +611,7 @@ body::after {
   border-radius: var(--radius-md);
   padding: 22px;
   text-align: center;
-  transition: all 0.3s ease;
+  cursor: pointer; font-family: var(--font-th); transition: all 0.3s ease;
   animation: fadeIn 0.5s ease both;
   position: relative;
   overflow: hidden;
@@ -794,7 +794,7 @@ body::after {
   color: var(--text-primary);
   font-family: var(--font-th);
   font-size: 0.95rem;
-  transition: all 0.3s ease;
+  cursor: pointer; font-family: var(--font-th); transition: all 0.3s ease;
   outline: none;
 }
 
@@ -814,35 +814,45 @@ body::after {
 
 .admin-nav .nav-btn {
   padding: 10px 20px;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
   border: 1.5px solid var(--border-color);
   border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-family: var(--font-th);
+  color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.3s ease;
+  cursor: pointer; font-family: var(--font-th); transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 }
 
 .admin-nav .nav-btn:hover {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 1);
   color: var(--text-primary);
   box-shadow: 0 2px 8px rgba(108, 92, 231, 0.08);
 }
 
 .admin-nav .nav-btn.active {
-  background: rgba(108, 92, 231, 0.08);
+  background: #fff;
   border-color: var(--accent-primary);
   color: var(--accent-primary);
-  box-shadow: 0 2px 12px rgba(108, 92, 231, 0.1);
+  box-shadow: 0 4px 15px rgba(108, 92, 231, 0.2);
+  font-weight: 600;
 }
 
 /* ==================== EMPTY STATE ==================== */
 
-.empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-.empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.6; }
-.empty-state p { font-size: 1rem; }
+.empty-state { 
+  text-align: center; 
+  padding: 60px 20px; 
+  color: var(--text-primary); 
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+.empty-state .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.8; }
+.empty-state p { font-size: 1.1rem; font-weight: 500; }
 
 /* ==================== ANIMATIONS ==================== */
 
