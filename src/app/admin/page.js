@@ -510,24 +510,34 @@ export default function AdminPage() {
     if (!file) return;
 
     try {
-      const formData = new FormData();
-      formData.append('adminKey', adminKey);
-      formData.append('avatar', file);
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Image = event.target.result;
+        
+        try {
+          const res = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              adminKey,
+              adminAvatarUrl: base64Image
+            })
+          });
 
-      const res = await fetch('/api/settings/avatar', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setAdminAvatarUrl(data.settings.adminAvatarUrl);
-        addToast('เปลี่ยนรูปโปรไฟล์สำเร็จ');
-      } else {
-        addToast('ไม่สามารถเปลี่ยนรูปโปรไฟล์ได้', 'error');
-      }
+          if (res.ok) {
+            const data = await res.json();
+            setAdminAvatarUrl(data.settings.adminAvatarUrl);
+            addToast('เปลี่ยนรูปโปรไฟล์สำเร็จ');
+          } else {
+            addToast('ไม่สามารถเปลี่ยนรูปโปรไฟล์ได้', 'error');
+          }
+        } catch (err) {
+          addToast('เกิดข้อผิดพลาดในการบันทึกรูปโปรไฟล์', 'error');
+        }
+      };
+      reader.readAsDataURL(file);
     } catch (err) {
-      addToast('เกิดข้อผิดพลาดในการเปลี่ยนรูปโปรไฟล์', 'error');
+      addToast('เกิดข้อผิดพลาดในการอ่านไฟล์', 'error');
     }
   };
 
