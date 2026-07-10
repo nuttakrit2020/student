@@ -652,6 +652,35 @@ export default function AdminPage() {
 
   return (
     <div className="page-container">
+      {qrCode && (
+        <div style={{
+          position: 'fixed',
+          top: '32px',
+          right: '32px',
+          background: 'var(--bg-card)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid var(--border-light)',
+          padding: '24px',
+          borderRadius: '24px',
+          boxShadow: '0 12px 48px rgba(0, 0, 0, 0.15)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          zIndex: 1000,
+          animation: 'fadeIn 0.5s ease',
+          maxWidth: '250px'
+        }}>
+          <div style={{ background: 'white', padding: '12px', borderRadius: '16px', width: '100%' }}>
+            <img src={qrCode} alt="QR Code" style={{ width: '100%', height: 'auto', aspectRatio: '1/1', objectFit: 'contain', display: 'block' }} />
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>สแกนเพื่อเข้าสู่ระบบ</div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>สำหรับนักเรียน</div>
+          </div>
+        </div>
+      )}
       <div className="content-wrapper">
         {/* Toast */}
         <div className="toast-container">
@@ -684,11 +713,6 @@ export default function AdminPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            {qrCode && (
-              <div style={{ background: 'white', padding: '4px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-                <img src={qrCode} alt="QR Code" style={{ width: '72px', height: '72px', objectFit: 'contain', display: 'block' }} title="ให้นักเรียนสแกนเพื่อเข้าระบบ" />
-              </div>
-            )}
             <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
               🚪 ออกจากระบบ
             </button>
