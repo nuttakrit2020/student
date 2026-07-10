@@ -348,6 +348,7 @@ export default function AdminPage() {
   const [subjectName, setSubjectName] = useState('');
   const [className, setClassName] = useState('');
   const [qrCode, setQrCode] = useState('');
+  const [showQrCode, setShowQrCode] = useState(true);
   const [adminAvatarUrl, setAdminAvatarUrl] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
@@ -653,33 +654,73 @@ export default function AdminPage() {
   return (
     <div className="page-container">
       {qrCode && (
-        <div style={{
-          position: 'fixed',
-          top: '32px',
-          right: '32px',
-          background: 'var(--bg-card)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid var(--border-light)',
-          padding: '24px',
-          borderRadius: '24px',
-          boxShadow: '0 12px 48px rgba(0, 0, 0, 0.15)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '16px',
-          zIndex: 1000,
-          animation: 'fadeIn 0.5s ease',
-          maxWidth: '250px'
-        }}>
-          <div style={{ background: 'white', padding: '12px', borderRadius: '16px', width: '100%' }}>
-            <img src={qrCode} alt="QR Code" style={{ width: '100%', height: 'auto', aspectRatio: '1/1', objectFit: 'contain', display: 'block' }} />
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>สแกนเพื่อเข้าสู่ระบบ</div>
-            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>สำหรับนักเรียน</div>
-          </div>
-        </div>
+        <>
+          {showQrCode ? (
+            <div style={{
+              position: 'fixed',
+              top: '32px',
+              right: '32px',
+              background: 'var(--bg-card)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid var(--border-light)',
+              padding: '24px',
+              borderRadius: '24px',
+              boxShadow: '0 12px 48px rgba(0, 0, 0, 0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px',
+              zIndex: 1000,
+              animation: 'fadeIn 0.5s ease',
+              maxWidth: '350px'
+            }}>
+              <button 
+                onClick={() => setShowQrCode(false)}
+                title="ซ่อน QR Code"
+                style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '1rem', color: 'var(--text-secondary)', transition: 'background 0.2s ease' }}
+                onMouseEnter={(e) => e.target.style.background = 'rgba(0,0,0,0.1)'}
+                onMouseLeave={(e) => e.target.style.background = 'rgba(0,0,0,0.05)'}
+              >
+                ✕
+              </button>
+              <div style={{ background: 'white', padding: '12px', borderRadius: '16px', width: '100%', marginTop: '8px' }}>
+                <img src={qrCode} alt="QR Code" style={{ width: '100%', height: 'auto', aspectRatio: '1/1', objectFit: 'contain', display: 'block' }} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>สแกนเพื่อเข้าสู่ระบบ</div>
+                <div style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>สำหรับนักเรียน</div>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowQrCode(true)}
+              style={{
+                position: 'fixed',
+                top: '32px',
+                right: '32px',
+                background: 'var(--bg-card)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                border: '1px solid var(--border-light)',
+                padding: '12px 16px',
+                borderRadius: '16px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                zIndex: 1000,
+                cursor: 'pointer',
+                animation: 'fadeIn 0.3s ease',
+                color: 'var(--text-primary)',
+                fontWeight: '600'
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>📱</span>
+              แสดง QR Code
+            </button>
+          )}
+        </>
       )}
       <div className="content-wrapper">
         {/* Toast */}
