@@ -13,26 +13,24 @@ export async function GET() {
   }
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { subjectName, className, adminKey } = body;
+    const { subjectName, className, adminKey, qrCode } = body;
 
     if (adminKey !== 'admin2569') {
-      return NextResponse.json(
-        { error: 'ไม่มีสิทธิ์เข้าถึง' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: '������Է�����Ҷ֧' }, { status: 403 });
     }
 
-    const newSettings = await updateSettings({ subjectName, className });
+    const updates = { subjectName, className };
+    if (qrCode !== undefined) updates.qrCode = qrCode;
+
+    const newSettings = await updateSettings(updates);
     return NextResponse.json({ settings: newSettings });
   } catch (error) {
-    return NextResponse.json(
-      { error: 'ไม่สามารถบันทึกการตั้งค่าได้' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '�������ö�ѹ�֡��õ�駤����' }, { status: 500 });
   }
 }
 
-export const dynamic = 'force-dynamic';

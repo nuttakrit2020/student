@@ -347,6 +347,7 @@ export default function AdminPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [subjectName, setSubjectName] = useState('');
   const [className, setClassName] = useState('');
+  const [qrCode, setQrCode] = useState('');
   const [adminAvatarUrl, setAdminAvatarUrl] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
@@ -389,6 +390,7 @@ export default function AdminPage() {
         if (result.settings) {
           setSubjectName(result.settings.subjectName || '');
           setClassName(result.settings.className || '');
+          setQrCode(result.settings.qrCode || '');
           setAdminAvatarUrl(result.settings.adminAvatarUrl || '');
         }
       } else {
@@ -671,9 +673,16 @@ export default function AdminPage() {
               <p>{subjectName || 'รายวิชาการออกแบบ 3'} {className || 'ชั้นมัธยมศึกษาปีที่ 3/1-8 เทอม 1/2569'}</p>
             </div>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
-            🚪 ออกจากระบบ
-          </button>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            {qrCode && (
+              <div style={{ background: 'white', padding: '4px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                <img src={qrCode} alt="QR Code" style={{ width: '72px', height: '72px', objectFit: 'contain', display: 'block' }} title="ให้นักเรียนสแกนเพื่อเข้าระบบ" />
+              </div>
+            )}
+            <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
+              🚪 ออกจากระบบ
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -1006,6 +1015,27 @@ export default function AdminPage() {
                   placeholder="เช่น ม.1/2569"
                 />
               </div>
+              <div className="form-group">
+                <label>รูป QR Code (สำหรับให้นักเรียนสแกน)</label>
+                {qrCode && (
+                  <img src={qrCode} alt="QR Code" style={{ width: '150px', height: '150px', objectFit: 'contain', marginBottom: '12px', display: 'block', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'white' }} />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="form-input"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (e) => setQrCode(e.target.result);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  style={{ padding: '8px' }}
+                />
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>* แนะนำให้ใช้รูปที่มีขนาดไม่ใหญ่เกินไป (ไม่เกิน 1MB)</p>
+              </div>
               <button 
                 className="btn btn-primary" 
                 style={{ width: 'auto' }}
@@ -1016,7 +1046,7 @@ export default function AdminPage() {
                     const res = await fetch('/api/settings', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ subjectName, className, adminKey })
+                      body: JSON.stringify({ subjectName, className, adminKey, qrCode })
                     });
                     if (res.ok) addToast('บันทึกการตั้งค่าสำเร็จ');
                     else addToast('เกิดข้อผิดพลาด', 'error');
