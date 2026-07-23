@@ -115,6 +115,7 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [gpsData, setGpsData] = useState(null);
   const [gpsError, setGpsError] = useState('');
+  const [cameraReady, setCameraReady] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
@@ -144,6 +145,7 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
   useEffect(() => {
     // Request camera only when in camera step
     if (step === 'camera') {
+      setCameraReady(false);
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
         .then((s) => {
           streamRef.current = s;
@@ -157,6 +159,7 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
         });
     } else {
       // Stop camera if going back
+      setCameraReady(false);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(t => t.stop());
         streamRef.current = null;
@@ -254,11 +257,17 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
             <p style={{ fontSize: '14px', color: '#666' }}>กรุณาถ่ายรูปให้เห็นใบหน้าและสถานที่เรียน</p>
             
             <div style={{ margin: '16px 0', position: 'relative' }}>
-              <video ref={videoRef} autoPlay playsInline style={{ width: '100%', maxWidth: '400px', borderRadius: '8px', backgroundColor: '#000', transform: 'scaleX(-1)' }} />
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                onLoadedMetadata={() => setCameraReady(true)}
+                style={{ width: '100%', maxWidth: '400px', borderRadius: '8px', backgroundColor: '#000', transform: 'scaleX(-1)' }} 
+              />
             </div>
             
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-              <button className="btn btn-primary" onClick={handleCapture} disabled={loading || !streamRef.current}>
+              <button className="btn btn-primary" onClick={handleCapture} disabled={loading || !cameraReady}>
                 {loading ? 'กำลังบันทึก...' : '📸 ถ่ายรูปและเช็คชื่อ'}
               </button>
               <button className="btn btn-secondary" onClick={() => setStep('map')} disabled={loading}>
