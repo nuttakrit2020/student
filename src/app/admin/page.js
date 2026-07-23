@@ -857,7 +857,10 @@ export default function AdminPage() {
                           {a.title.length > 15 ? a.title.substring(0, 15) + '...' : a.title}
                         </th>
                       ))}
-                      <th>รวม</th>
+                      <th>กลางภาค (20)</th>
+                      <th>ปลายภาค (20)</th>
+                      <th>จิตพิสัย (10)</th>
+                      <th>รวม (100)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -902,12 +905,51 @@ export default function AdminPage() {
                               </td>
                             );
                           })}
+                          <td style={{ textAlign: 'center' }}>
+                            <input
+                              type="number"
+                              className="score-input"
+                              placeholder="-"
+                              value={row.student.midtermScore ?? ''}
+                              onChange={(e) => handleStudentScoreChange(row.student.id, 'midtermScore', e.target.value)}
+                              min={0} max={20}
+                              style={{ width: '45px', padding: '2px 4px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                            />
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <input
+                              type="number"
+                              className="score-input"
+                              placeholder="-"
+                              value={row.student.finalScore ?? ''}
+                              onChange={(e) => handleStudentScoreChange(row.student.id, 'finalScore', e.target.value)}
+                              min={0} max={20}
+                              style={{ width: '45px', padding: '2px 4px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                            />
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <input
+                              type="number"
+                              className="score-input"
+                              placeholder="-"
+                              value={row.student.behaviorScore ?? ''}
+                              onChange={(e) => handleStudentScoreChange(row.student.id, 'behaviorScore', e.target.value)}
+                              min={0} max={10}
+                              style={{ width: '45px', padding: '2px 4px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                            />
+                          </td>
                           <td style={{
                             fontFamily: 'var(--font-en)',
                             fontWeight: 700,
-                            color: submittedCount === assignments.length ? 'var(--success)' : 'var(--warning)',
+                            textAlign: 'center',
+                            color: 'var(--text-primary)'
                           }}>
-                            {submittedCount}/{assignments.length}
+                            {(() => {
+                              const assignmentScore = Object.values(row.submissions).reduce((sum, s) => sum + (Number(s.score) || 0), 0);
+                              const totalScore = assignmentScore + (Number(row.student.midtermScore) || 0) + (Number(row.student.finalScore) || 0) + (Number(row.student.behaviorScore) || 0);
+                              return totalScore;
+                            })()}
+                          </td>
                           </td>
                         </tr>
                       );

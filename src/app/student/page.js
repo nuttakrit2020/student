@@ -251,7 +251,7 @@ export default function StudentPage() {
         </div>
 
         {/* Progress Bar */}
-        <div className="card" style={{ marginBottom: '24px' }}>
+        <div className="card" style={{ marginBottom: '16px' }}>
           <div className="card-header">
             <span className="card-title">📊 ความคืบหน้า</span>
             <span style={{ color: 'var(--accent-secondary)', fontFamily: 'var(--font-en)', fontWeight: 700 }}>
@@ -260,6 +260,50 @@ export default function StudentPage() {
           </div>
           <div className="progress-bar-wrapper">
             <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+          </div>
+        </div>
+
+        {/* Score Breakdown */}
+        <div className="card" style={{ marginBottom: '24px', background: 'linear-gradient(145deg, #ffffff, #f5f8ff)' }}>
+          <div className="card-header" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '12px', marginBottom: '16px' }}>
+            <span className="card-title">🏆 สรุปคะแนน</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>เต็ม 100</span>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {(() => {
+              const assignmentScore = submissions.reduce((sum, s) => sum + (Number(s.score) || 0), 0);
+              const midtermScore = Number(student?.midtermScore) || 0;
+              const finalScore = Number(student?.finalScore) || 0;
+              const behaviorScore = Number(student?.behaviorScore) || 0;
+              const totalScore = assignmentScore + midtermScore + finalScore + behaviorScore;
+
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>📝 คะแนนใบงาน</span>
+                    <strong style={{ fontFamily: 'var(--font-en)' }}>{assignmentScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>/ 50</span></strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>📝 สอบกลางภาค</span>
+                    <strong style={{ fontFamily: 'var(--font-en)' }}>{midtermScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>/ 20</span></strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>📝 สอบปลายภาค</span>
+                    <strong style={{ fontFamily: 'var(--font-en)' }}>{finalScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>/ 20</span></strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>❤️ จิตพิสัย / มาเรียน</span>
+                    <strong style={{ fontFamily: 'var(--font-en)' }}>{behaviorScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>/ 10</span></strong>
+                  </div>
+                  <div style={{ height: '1px', background: 'var(--border-light)', margin: '8px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--accent-primary)' }}>รวมทั้งหมด</span>
+                    <strong style={{ fontFamily: 'var(--font-en)', fontSize: '1.3rem', color: 'var(--accent-primary)' }}>{totalScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>/ 100</span></strong>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
