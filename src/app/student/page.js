@@ -111,6 +111,7 @@ function EditProfileModal({ student, onClose, onSuccess }) {
 }
 
 function AttendanceCheckModal({ student, onClose, onSuccess }) {
+  const [step, setStep] = useState('map'); // 'map' or 'camera'
   const [loading, setLoading] = useState(false);
   const [gpsData, setGpsData] = useState(null);
   const [gpsError, setGpsError] = useState('');
@@ -118,6 +119,7 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
   const streamRef = useRef(null);
 
   useEffect(() => {
+    // Request GPS immediately
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -132,24 +134,35 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
       setGpsError('อุปกรณ์นี้ไม่รองรับ GPS');
     }
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-      .then((s) => {
-        streamRef.current = s;
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert('ไม่สามารถเข้าถึงกล้องได้ หากคุณใช้งานผ่านแอป LINE กรุณากดเมนูมุมขวาบน ⋯ หรือมุมล่างขวา แล้วเลือก "เปิดด้วยเบราว์เซอร์เริ่มต้น" (Open in external browser)');
-      });
-
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(t => t.stop());
       }
     };
   }, []);
+
+  useEffect(() => {
+    // Request camera only when in camera step
+    if (step === 'camera') {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+        .then((s) => {
+          streamRef.current = s;
+          if (videoRef.current) {
+            videoRef.current.srcObject = s;
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert('ไม่สามารถเข้าถึงกล้องได้ หากคุณใช้งานผ่านแอป LINE กรุณากดเมนูมุมขวาบน ⋯ หรือมุมล่างขวา แล้วเลือก "เปิดด้วยเบราว์เซอร์เริ่มต้น" (Open in external browser)');
+        });
+    } else {
+      // Stop camera if going back
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+    }
+  }, [step]);
 
   const handleCapture = async () => {
     if (!gpsData) return alert('กำลังรอพิกัด GPS... หากรอนานเกินไป กรุณาตรวจสอบการอนุญาต Location');
@@ -188,29 +201,69 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal" style={{ textAlign: 'center' }}>
+      <div className="modal" style={{ textAlign: 'center', width: '90%', maxWidth: '500px' }}>
         <h3>📍 เช็คชื่อเข้าเรียน</h3>
-        <p style={{ fontSize: '14px', color: '#666' }}>กรุณาถ่ายรูปให้เห็นใบหน้าและสถานที่เรียน</p>
         
-        <div style={{ margin: '16px 0', position: 'relative' }}>
-          <video ref={videoRef} autoPlay playsInline style={{ width: '100%', maxWidth: '400px', borderRadius: '8px', backgroundColor: '#000' }} />
-          {gpsData && (
-            <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.6)', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
-              📍 {gpsData.lat.toFixed(4)}, {gpsData.lng.toFixed(4)}
+        {step === 'map' && (
+          <div>
+            <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>กำลังดึงพิกัดตำแหน่งปัจจุบันของคุณ...</p>
+            {gpsData ? (
+              <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #ddd', marginBottom: '16px' }}>
+                <iframe
+                  width="100%"
+                  height="250"
+                  frameBorder="0"
+                  style={{ border: 0, display: 'block' }}
+                  src={`https://maps.google.com/maps?q=${gpsData.lat},${gpsData.lng}&z=16&output=embed`}
+                  allowFullScreen
+                ></iframe>
+                <div style={{ background: '#f8f9fa', padding: '8px', fontSize: '12px', color: '#555' }}>
+                  พิกัด: {gpsData.lat.toFixed(5)}, {gpsData.lng.toFixed(5)}
+                </div>
+              </div>
+            ) : (
+              <div style={{ height: '250px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', marginBottom: '16px' }}>
+                {gpsError ? (
+                  <span style={{ color: 'red', padding: '0 16px' }}>{gpsError}</span>
+                ) : (
+                  <span style={{ color: '#666' }}>กำลังรอ GPS...</span>
+                )}
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => setStep('camera')} 
+                disabled={!gpsData}
+              >
+                ต่อไป: ถ่ายรูปยืนยัน 📸
+              </button>
+              <button className="btn btn-secondary" onClick={onClose}>
+                ยกเลิก
+              </button>
             </div>
-          )}
-        </div>
-        
-        {gpsError && <p style={{ color: 'red', fontSize: '14px', marginBottom: '8px' }}>{gpsError}</p>}
-        
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-          <button className="btn btn-primary" onClick={handleCapture} disabled={loading || !streamRef.current}>
-            {loading ? 'กำลังบันทึก...' : '📸 ถ่ายรูปและเช็คชื่อ'}
-          </button>
-          <button className="btn btn-secondary" onClick={onClose} disabled={loading}>
-            ยกเลิก
-          </button>
-        </div>
+          </div>
+        )}
+
+        {step === 'camera' && (
+          <div>
+            <p style={{ fontSize: '14px', color: '#666' }}>กรุณาถ่ายรูปให้เห็นใบหน้าและสถานที่เรียน</p>
+            
+            <div style={{ margin: '16px 0', position: 'relative' }}>
+              <video ref={videoRef} autoPlay playsInline style={{ width: '100%', maxWidth: '400px', borderRadius: '8px', backgroundColor: '#000' }} />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button className="btn btn-primary" onClick={handleCapture} disabled={loading || !streamRef.current}>
+                {loading ? 'กำลังบันทึก...' : '📸 ถ่ายรูปและเช็คชื่อ'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setStep('map')} disabled={loading}>
+                ย้อนกลับ
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
