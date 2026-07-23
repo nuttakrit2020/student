@@ -1,5 +1,22 @@
 import { NextResponse } from 'next/server';
-import { addAttendance, getAttendances, deleteAttendance } from '@/lib/data';
+import { addAttendance, getAttendances, deleteAttendance, getSettings } from '@/lib/data';
+
+// Haversine distance in meters
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+  const R = 6371e3; // metres
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return Math.round(R * c);
+}
 export async function POST(request) {
   try {
     const { studentId, lat, lng, photo, timestamp } = await request.json();
@@ -8,11 +25,24 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Calculate distance if target is set
+    const settings = await getSettings();
+    let distance = null;
+    let isOk = null;
+    if (settings && settings.targetLat && settings.targetLng) {
+      distance = calculateDistance(settings.targetLat, settings.targetLng, lat, lng);
+      if (distance !== null) {
+        isOk = distance <= 50;
+      }
+    }
+
     const attendance = {
       id: crypto.randomUUID(),
       studentId,
       lat,
       lng,
+      distance,
+      isOk,
       photo,
       timestamp,
       createdAt: new Date().toISOString()

@@ -1342,33 +1342,27 @@ export default function AdminPage() {
                           <td>{att.studentId}</td>
                           <td>{studentInfo ? studentInfo.name : 'ไม่ทราบชื่อ'}</td>
                           <td>
-                            {targetLat && targetLng ? (
-                              (() => {
-                                const dist = calculateDistance(targetLat, targetLng, att.lat, att.lng);
-                                const isOk = dist <= 50;
-                                return (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    <span style={{ 
-                                      color: isOk ? '#137333' : '#d93025', 
-                                      fontWeight: 600, 
-                                      fontSize: '0.9rem',
-                                      background: isOk ? '#e6f4ea' : '#fce8e6',
-                                      padding: '4px 8px',
-                                      borderRadius: '12px',
-                                      display: 'inline-block',
-                                      textAlign: 'center'
-                                    }}>
-                                      {isOk ? `🟢 ตรงจุด (${dist} ม.)` : `🔴 ผิดจุด! ห่าง ${dist} ม.`}
-                                    </span>
-                                    <a href={`https://maps.google.com/?q=${att.lat},${att.lng}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary" style={{ padding: '2px 4px', fontSize: '11px', display: 'inline-block', textAlign: 'center' }}>
-                                      🗺️ ดูแผนที่
-                                    </a>
-                                  </div>
-                                );
-                              })()
+                            {att.distance !== undefined && att.distance !== null ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <span style={{ 
+                                  color: att.isOk ? '#137333' : '#d93025', 
+                                  fontWeight: 600, 
+                                  fontSize: '0.9rem',
+                                  background: att.isOk ? '#e6f4ea' : '#fce8e6',
+                                  padding: '4px 8px',
+                                  borderRadius: '12px',
+                                  display: 'inline-block',
+                                  textAlign: 'center'
+                                }}>
+                                  {att.isOk ? `🟢 ตรงจุด (${att.distance} ม.)` : `🔴 ผิดจุด! ห่าง ${att.distance} ม.`}
+                                </span>
+                                <a href={`https://maps.google.com/?q=${att.lat},${att.lng}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary" style={{ padding: '2px 4px', fontSize: '11px', display: 'inline-block', textAlign: 'center' }}>
+                                  🗺️ ดูแผนที่
+                                </a>
+                              </div>
                             ) : (
                               <a href={`https://maps.google.com/?q=${att.lat},${att.lng}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', display: 'inline-block' }}>
-                                🗺️ ดูแผนที่
+                                🗺️ ดูแผนที่ (ไม่มีระบบคำนวณ)
                               </a>
                             )}
                           </td>
