@@ -172,6 +172,9 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
       canvas.width = 400;
       canvas.height = 400 * (videoRef.current.videoHeight / videoRef.current.videoWidth);
       const ctx = canvas.getContext('2d');
+      // Mirror the canvas context so the saved photo matches the mirrored video preview
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       const photo = canvas.toDataURL('image/jpeg', 0.6);
 
@@ -251,7 +254,7 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
             <p style={{ fontSize: '14px', color: '#666' }}>กรุณาถ่ายรูปให้เห็นใบหน้าและสถานที่เรียน</p>
             
             <div style={{ margin: '16px 0', position: 'relative' }}>
-              <video ref={videoRef} autoPlay playsInline style={{ width: '100%', maxWidth: '400px', borderRadius: '8px', backgroundColor: '#000' }} />
+              <video ref={videoRef} autoPlay playsInline style={{ width: '100%', maxWidth: '400px', borderRadius: '8px', backgroundColor: '#000', transform: 'scaleX(-1)' }} />
             </div>
             
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
