@@ -894,3 +894,6 @@ body::after {
   .stats-grid { grid-template-columns: 1fr; }
   .assignment-card { padding: 18px; }
 }
+
+@media (max-width: 1200px) { .qr-floating { display: none !important; } }
+

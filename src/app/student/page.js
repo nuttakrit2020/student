@@ -141,7 +141,7 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
       })
       .catch(err => {
         console.error(err);
-        alert('ไม่สามารถเข้าถึงกล้องได้ (กรุณาอนุญาต Camera)');
+        alert('ไม่สามารถเข้าถึงกล้องได้ หากคุณใช้งานผ่านแอป LINE กรุณากดเมนูมุมขวาบน ⋯ หรือมุมล่างขวา แล้วเลือก "เปิดด้วยเบราว์เซอร์เริ่มต้น" (Open in external browser)');
       });
 
     return () => {
@@ -225,7 +225,21 @@ export default function StudentPage() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [isLineBrowser, setIsLineBrowser] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // Detect LINE In-App Browser
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    if (userAgent.indexOf("Line") > -1) {
+      setIsLineBrowser(true);
+      // Try to force external browser if not already tried (works on some Android devices)
+      if (!window.location.search.includes("openExternalBrowser=1")) {
+        const separator = window.location.href.includes("?") ? "&" : "?";
+        window.location.href = window.location.href + separator + "openExternalBrowser=1";
+      }
+    }
+  }, []);
 
   const addToast = (message, type = 'success') => {
     const id = Date.now();
@@ -302,6 +316,12 @@ export default function StudentPage() {
 
   return (
     <div className="page-container">
+      {isLineBrowser && (
+        <div style={{ background: '#ffeb3b', color: '#333', padding: '12px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold' }}>
+          ⚠️ ท่านกำลังใช้งานผ่านแอป LINE ซึ่งอาจไม่รองรับกล้อง/GPS<br/>
+          กรุณากดเมนู ⋯ (3 จุด) แล้วเลือก <b>"เปิดด้วยเบราว์เซอร์เริ่มต้น"</b> (Open in external browser) เพื่อใช้งานเช็คชื่อ
+        </div>
+      )}
       <div className="content-wrapper">
         {/* Toast notifications */}
         <div className="toast-container">
