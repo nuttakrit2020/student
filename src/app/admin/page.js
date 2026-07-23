@@ -414,6 +414,64 @@ export default function AdminPage() {
     fetchData(key);
   }, [router, fetchData]);
 
+  const handleStudentScoreChange = async (studentId, field, newScoreStr) => {
+    const newScore = newScoreStr === '' ? null : Number(newScoreStr);
+    
+    // Optimistic UI Update
+    setData(prevData => {
+      const newSummaryData = [...prevData.summaryData];
+      const studentIndex = newSummaryData.findIndex(s => s.student.id === studentId);
+      if (studentIndex !== -1) {
+        newSummaryData[studentIndex] = {
+          ...newSummaryData[studentIndex],
+          student: {
+            ...newSummaryData[studentIndex].student,
+            [field]: newScore
+          }
+        };
+      }
+      return { ...prevData, summaryData: newSummaryData };
+    });
+
+    try {
+      await fetch('/api/admin/students', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: studentId,
+          updates: { [field]: newScore },
+          adminKey
+        }),
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleBulkScore = async (type, idOrField, maxScore, title) => {
+    const scoreStr = prompt(`กรอกคะแนนที่ต้องการให้ "ทุกคนที่อยู่ในตาราง" สำหรับ:\n${title}\n(คะแนนเต็ม ${maxScore})`);
+    if (scoreStr === null || scoreStr === '') return;
+    const score = Number(scoreStr);
+    if (isNaN(score) || score < 0 || score > maxScore) {
+      return alert(`กรุณากรอกตัวเลขระหว่าง 0 ถึง ${maxScore}`);
+    }
+
+    if (!confirm(`ยืนยันการให้คะแนน ${score} กับนักเรียนทุกคนที่แสดงในตาราง (${data?.summaryData?.length || 0} คน)?`)) return;
+
+    if (type === 'assignment') {
+      const promises = data.summaryData.map(row => 
+        handleUpdateSubmission(row.student.id, idOrField, row.submissions[idOrField]?.submitted, row.submissions[idOrField]?.score, true, score)
+      );
+      await Promise.all(promises);
+    } else {
+      const promises = data.summaryData.map(row => 
+        handleStudentScoreChange(row.student.id, idOrField, score)
+      );
+      await Promise.all(promises);
+    }
+    addToast(`กรอกคะแนน ${title} ให้ทุกคนเรียบร้อยแล้ว`, 'success');
+  };
+
   const handleDeleteAssignment = async (id, title) => {
     if (!confirm(`ต้องการลบ "${title}" หรือไม่?\nข้อมูลการส่งงานที่เกี่ยวข้องจะถูกลบด้วย`)) return;
 
@@ -853,13 +911,18 @@ export default function AdminPage() {
                       <th>รหัส</th>
                       <th>ชื่อ-สกุล</th>
                       {assignments.map((a) => (
-                        <th key={a.id} title={a.title} style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {a.title.length > 15 ? a.title.substring(0, 15) + '...' : a.title}
+                        <th 
+                          key={a.id} 
+                          title={`${a.title}\n(คลิกเพื่อกรอกคะแนนให้ทุกคน)`} 
+                          style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', background: 'var(--bg-primary)' }}
+                          onClick={() => handleBulkScore('assignment', a.id, a.maxScore || 10, a.title)}
+                        >
+                          {a.title.length > 15 ? a.title.substring(0, 15) + '...' : a.title} ✏️
                         </th>
                       ))}
-                      <th>กลางภาค (20)</th>
-                      <th>ปลายภาค (20)</th>
-                      <th>จิตพิสัย (10)</th>
+                      <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'midtermScore', 20, 'สอบกลางภาค')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">กลางภาค ✏️ (20)</th>
+                      <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'finalScore', 20, 'สอบปลายภาค')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">ปลายภาค ✏️ (20)</th>
+                      <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'behaviorScore', 10, 'จิตพิสัย')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">จิตพิสัย ✏️ (10)</th>
                       <th>รวม (100)</th>
                     </tr>
                   </thead>
