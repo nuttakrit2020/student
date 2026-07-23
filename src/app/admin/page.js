@@ -613,6 +613,21 @@ export default function AdminPage() {
     }
   };
 
+  const handleDeleteAttendance = async (id, name) => {
+    if (!confirm(`ต้องการลบประวัติเช็คชื่อของ ${name} ใช่หรือไม่?\nนักเรียนจะสามารถกดเช็คชื่อใหม่ได้`)) return;
+    try {
+      const res = await fetch(`/api/attendance?id=${id}&adminKey=${adminKey}`, { method: 'DELETE' });
+      if (res.ok) {
+        addToast('ลบประวัติเช็คชื่อสำเร็จ');
+        fetchData(adminKey);
+      } else {
+        addToast('ไม่สามารถลบประวัติเช็คชื่อได้', 'error');
+      }
+    } catch (err) {
+      addToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+    }
+  };
+
   const handleDeleteStudent = async (id, name) => {
     if (!confirm(`ต้องการลบนักเรียน ${id} - ${name} ใช่หรือไม่?\nข้อมูลการส่งงานที่เกี่ยวข้องจะสูญหาย`)) return;
 
@@ -1238,6 +1253,7 @@ export default function AdminPage() {
                       <th>ชื่อนักเรียน</th>
                       <th>พิกัด (GPS)</th>
                       <th>รูปถ่าย</th>
+                      <th>จัดการ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1257,6 +1273,16 @@ export default function AdminPage() {
                             <a href={att.photo} target="_blank" rel="noopener noreferrer">
                               <img src={att.photo} alt="รูปถ่าย" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ddd' }} />
                             </a>
+                          </td>
+                          <td>
+                            <button 
+                              className="btn btn-danger btn-sm" 
+                              onClick={() => handleDeleteAttendance(att.id, studentInfo ? studentInfo.name : att.studentId)}
+                              style={{ padding: '4px 8px', fontSize: '12px', display: 'inline-block' }}
+                              title="ลบเพื่อให้นักเรียนเช็คชื่อใหม่"
+                            >
+                              🗑️ ลบ/ทำใหม่
+                            </button>
                           </td>
                         </tr>
                       );

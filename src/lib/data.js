@@ -399,3 +399,14 @@ export async function addAttendance(attendance) {
   writeJSON('attendances.json', attendances);
   return attendance;
 }
+
+export async function deleteAttendance(id) {
+  if (db) {
+    await deleteDoc(doc(db, 'attendances', id));
+    return true;
+  }
+  const attendances = readJSON('attendances.json');
+  const filtered = attendances.filter(a => a.id !== id);
+  writeJSON('attendances.json', filtered);
+  return true;
+}

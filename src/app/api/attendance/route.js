@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { addAttendance, getAttendances } from '@/lib/data';
+import { addAttendance, getAttendances, deleteAttendance } from '@/lib/data';
 export async function POST(request) {
   try {
     const { studentId, lat, lng, photo, timestamp } = await request.json();
@@ -43,6 +43,28 @@ export async function GET(request) {
     return NextResponse.json(attendances);
   } catch (error) {
     console.error('Error fetching attendances:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const adminKey = searchParams.get('adminKey');
+    const id = searchParams.get('id');
+
+    if (adminKey !== 'admin2569') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing attendance ID' }, { status: 400 });
+    }
+
+    await deleteAttendance(id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting attendance:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
