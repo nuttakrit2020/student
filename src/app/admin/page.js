@@ -950,7 +950,6 @@ export default function AdminPage() {
                               return totalScore;
                             })()}
                           </td>
-                          </td>
                         </tr>
                       );
                     })}
