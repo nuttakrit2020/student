@@ -347,10 +347,6 @@ export default function StudentPage() {
                       <span style={{ color: 'var(--accent-primary)', fontWeight: 'bold' }}>
                         🎯 ได้คะแนน: {sub.score} / {assignment.maxScore}
                       </span>
-                    )}
-                    {isSubmitted && sub.submittedAt && (
-                      <span>🕐 ส่งเมื่อ: {new Date(sub.submittedAt).toLocaleString('th-TH')}</span>
-                    )}
                   </div>
 
                   {assignment.worksheetUrl && !isSubmitted && (
