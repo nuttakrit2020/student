@@ -944,7 +944,7 @@ export default function AdminPage() {
                               <td
                                 key={a.id}
                                 className={sub?.submitted ? 'cell-submitted' : 'cell-not-submitted'}
-                                title={sub?.submitted ? `ส่งเมื่อ: ${new Date(sub.submittedAt).toLocaleString('th-TH')}` : 'ยังไม่ส่ง (คลิกหรือลากเพื่อสลับสถานะ)'}
+                                title={sub?.submitted ? 'ส่งแล้ว (คลิกหรือลากเพื่อสลับสถานะ)' : 'ยังไม่ส่ง (คลิกหรือลากเพื่อสลับสถานะ)'}
                                 style={{ textAlign: 'center', cursor: 'pointer', position: 'relative' }}
                                 onMouseDown={() => handleCellMouseDown(row.student.id, a.id, sub?.submitted, sub?.score)}
                                 onMouseEnter={() => handleCellMouseEnter(row.student.id, a.id, sub?.submitted, sub?.score)}
