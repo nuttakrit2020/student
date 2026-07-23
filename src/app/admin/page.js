@@ -419,18 +419,18 @@ export default function AdminPage() {
     
     // Optimistic UI Update
     setData(prevData => {
-      const newSummaryData = [...prevData.summaryData];
-      const studentIndex = newSummaryData.findIndex(s => s.student.id === studentId);
+      const newSubmissions = [...prevData.submissions];
+      const studentIndex = newSubmissions.findIndex(s => s.student.id === studentId);
       if (studentIndex !== -1) {
-        newSummaryData[studentIndex] = {
-          ...newSummaryData[studentIndex],
+        newSubmissions[studentIndex] = {
+          ...newSubmissions[studentIndex],
           student: {
-            ...newSummaryData[studentIndex].student,
+            ...newSubmissions[studentIndex].student,
             [field]: newScore
           }
         };
       }
-      return { ...prevData, summaryData: newSummaryData };
+      return { ...prevData, submissions: newSubmissions };
     });
 
     try {
@@ -449,6 +449,11 @@ export default function AdminPage() {
   };
 
   const handleBulkScore = async (type, idOrField, maxScore, title) => {
+    if (!data || !data.submissions) return;
+    
+    const summaryData = data.submissions;
+    const filteredStudents = filterRoom ? summaryData.filter(s => s.student.room === filterRoom) : summaryData;
+
     const scoreStr = prompt(`กรอกคะแนนที่ต้องการให้ "ทุกคนที่อยู่ในตาราง" สำหรับ:\n${title}\n(คะแนนเต็ม ${maxScore})`);
     if (scoreStr === null || scoreStr === '') return;
     const score = Number(scoreStr);
@@ -456,15 +461,15 @@ export default function AdminPage() {
       return alert(`กรุณากรอกตัวเลขระหว่าง 0 ถึง ${maxScore}`);
     }
 
-    if (!confirm(`ยืนยันการให้คะแนน ${score} กับนักเรียนทุกคนที่แสดงในตาราง (${data?.summaryData?.length || 0} คน)?`)) return;
+    if (!confirm(`ยืนยันการให้คะแนน ${score} กับนักเรียนทุกคนที่แสดงในตาราง (${filteredStudents.length} คน)?`)) return;
 
     if (type === 'assignment') {
-      const promises = data.summaryData.map(row => 
+      const promises = filteredStudents.map(row => 
         handleUpdateSubmission(row.student.id, idOrField, row.submissions[idOrField]?.submitted, row.submissions[idOrField]?.score, true, score)
       );
       await Promise.all(promises);
     } else {
-      const promises = data.summaryData.map(row => 
+      const promises = filteredStudents.map(row => 
         handleStudentScoreChange(row.student.id, idOrField, score)
       );
       await Promise.all(promises);
