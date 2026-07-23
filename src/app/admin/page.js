@@ -1044,7 +1044,7 @@ export default function AdminPage() {
             {assignments.length === 0 ? (
               <div className="empty-state">
                 <div className="icon">📭</div>
-                <p>ยังไม่มีงาน — คลิก "เพิ่มงานใหม่" เพื่อเริ่มต้น</p>
+                <p>ยังไม่มีงาน — คลิก &quot;เพิ่มงานใหม่&quot; เพื่อเริ่มต้น</p>
               </div>
             ) : (
               <div className="assignment-list">
