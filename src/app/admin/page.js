@@ -562,6 +562,31 @@ export default function AdminPage() {
     }
   };
 
+  const handleDeleteAllStudents = async () => {
+    if (!summaryData || summaryData.length === 0) return;
+    if (!confirm(`🚨 ยืนยันที่จะ ลบนักเรียนทั้งหมด (${summaryData.length} คน) ออกจากระบบ?\n\n(คำเตือน: การกระทำนี้จะลบงานที่ส่งแล้วทั้งหมดด้วย และไม่สามารถกู้คืนได้)`)) return;
+    
+    // confirm twice for safety
+    if (!confirm('ยืนยันอีกครั้ง! คุณต้องการล้างข้อมูลนักเรียนทั้งหมดจริงๆ ใช่หรือไม่?')) return;
+    
+    const allIds = summaryData.map(s => s.student.id);
+    try {
+      const res = await fetch(`/api/admin/students?action=bulk&ids=${allIds.join(',')}&adminKey=${adminKey}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        fetchData();
+        showToast('ลบนักเรียนทั้งหมดออกจากระบบแล้ว', 'success');
+        setSelectedStudents([]);
+      } else {
+        const error = await res.json();
+        showToast(error.error || 'ล้มเหลว', 'error');
+      }
+    } catch (err) {
+      showToast('เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว', 'error');
+    }
+  };
+
   const handleBulkDeleteStudents = async () => {
     if (selectedStudents.length === 0) return;
     if (!confirm(`ต้องการลบนักเรียนจำนวน ${selectedStudents.length} คน ใช่หรือไม่?\nข้อมูลการส่งงานที่เกี่ยวข้องจะสูญหายทั้งหมด`)) return;
@@ -993,7 +1018,12 @@ export default function AdminPage() {
                     {rooms.map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {summaryData && summaryData.length > 0 && (
+                    <button className="btn btn-danger btn-sm" onClick={handleDeleteAllStudents} style={{ width: 'auto', background: 'var(--error)' }}>
+                      🚨 ลบทั้งหมด
+                    </button>
+                  )}
                   {selectedStudents.length > 0 && (
                     <button className="btn btn-danger btn-sm" onClick={handleBulkDeleteStudents} style={{ width: 'auto' }}>
                       🗑️ ลบที่เลือก ({selectedStudents.length})
