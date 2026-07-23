@@ -342,6 +342,7 @@ function BulkStudentModal({ adminKey, onClose, onSuccess }) {
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('summary');
   const [data, setData] = useState(null);
+  const [attendances, setAttendances] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adminKey, setAdminKey] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -396,6 +397,13 @@ export default function AdminPage() {
         }
       } else {
         router.push('/');
+      }
+      
+      // Fetch attendances
+      const attRes = await fetch(`/api/attendance?adminKey=${key}`);
+      if (attRes.ok) {
+        const attResult = await attRes.json();
+        setAttendances(attResult);
       }
     } catch (err) {
       console.error('Error loading admin data:', err);
@@ -889,6 +897,12 @@ export default function AdminPage() {
             👩‍🎓 รายชื่อนักเรียน
           </button>
           <button
+            className={`nav-btn ${activeTab === 'attendance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('attendance')}
+          >
+            📍 ประวัติเช็คชื่อ
+          </button>
+          <button
             className={`nav-btn ${activeTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveTab('settings')}
           >
@@ -1202,6 +1216,57 @@ export default function AdminPage() {
             </div>
           );
         })()}
+
+        {activeTab === 'attendance' && (
+          <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
+            <div className="card-header" style={{ marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📍 ประวัติเช็คชื่อ</h2>
+            </div>
+            
+            {attendances.length === 0 ? (
+              <div className="empty-state">
+                <div className="icon">📭</div>
+                <p>ยังไม่มีประวัติการเช็คชื่อ</p>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>วัน/เวลา</th>
+                      <th>รหัสนักเรียน</th>
+                      <th>ชื่อนักเรียน</th>
+                      <th>พิกัด (GPS)</th>
+                      <th>รูปถ่าย</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendances.map((att) => {
+                      const studentInfo = data?.students?.find(s => s.id === att.studentId);
+                      return (
+                        <tr key={att.id}>
+                          <td>{new Date(att.timestamp).toLocaleString('th-TH')}</td>
+                          <td>{att.studentId}</td>
+                          <td>{studentInfo ? studentInfo.name : 'ไม่ทราบชื่อ'}</td>
+                          <td>
+                            <a href={`https://maps.google.com/?q=${att.lat},${att.lng}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', display: 'inline-block' }}>
+                              🗺️ ดูแผนที่
+                            </a>
+                          </td>
+                          <td>
+                            <a href={att.photo} target="_blank" rel="noopener noreferrer">
+                              <img src={att.photo} alt="รูปถ่าย" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ddd' }} />
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {activeTab === 'settings' && (
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>

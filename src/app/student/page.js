@@ -110,6 +110,112 @@ function EditProfileModal({ student, onClose, onSuccess }) {
   );
 }
 
+function AttendanceCheckModal({ student, onClose, onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [gpsData, setGpsData] = useState(null);
+  const [gpsError, setGpsError] = useState('');
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setGpsData({ lat: position.coords.latitude, lng: position.coords.longitude });
+        },
+        (err) => {
+          setGpsError('ไม่สามารถเข้าถึงตำแหน่ง GPS ได้ (กรุณาอนุญาต Location)');
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      setGpsError('อุปกรณ์นี้ไม่รองรับ GPS');
+    }
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+      .then((s) => {
+        streamRef.current = s;
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('ไม่สามารถเข้าถึงกล้องได้ (กรุณาอนุญาต Camera)');
+      });
+
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+      }
+    };
+  }, []);
+
+  const handleCapture = async () => {
+    if (!gpsData) return alert('กำลังรอพิกัด GPS... หากรอนานเกินไป กรุณาตรวจสอบการอนุญาต Location');
+    setLoading(true);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 400 * (videoRef.current.videoHeight / videoRef.current.videoWidth);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const photo = canvas.toDataURL('image/jpeg', 0.6);
+
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          studentId: student.id, 
+          lat: gpsData.lat, 
+          lng: gpsData.lng, 
+          photo, 
+          timestamp: new Date().toISOString() 
+        })
+      });
+
+      if (res.ok) {
+        onSuccess('เช็คชื่อและบันทึกพิกัดสำเร็จแล้ว!');
+      } else {
+        alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal" style={{ textAlign: 'center' }}>
+        <h3>📍 เช็คชื่อเข้าเรียน</h3>
+        <p style={{ fontSize: '14px', color: '#666' }}>กรุณาถ่ายรูปให้เห็นใบหน้าและสถานที่เรียน</p>
+        
+        <div style={{ margin: '16px 0', position: 'relative' }}>
+          <video ref={videoRef} autoPlay playsInline style={{ width: '100%', maxWidth: '400px', borderRadius: '8px', backgroundColor: '#000' }} />
+          {gpsData && (
+            <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.6)', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
+              📍 {gpsData.lat.toFixed(4)}, {gpsData.lng.toFixed(4)}
+            </div>
+          )}
+        </div>
+        
+        {gpsError && <p style={{ color: 'red', fontSize: '14px', marginBottom: '8px' }}>{gpsError}</p>}
+        
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          <button className="btn btn-primary" onClick={handleCapture} disabled={loading || !streamRef.current}>
+            {loading ? 'กำลังบันทึก...' : '📸 ถ่ายรูปและเช็คชื่อ'}
+          </button>
+          <button className="btn btn-secondary" onClick={onClose} disabled={loading}>
+            ยกเลิก
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentPage() {
   const [student, setStudent] = useState(null);
   const [assignments, setAssignments] = useState([]);
@@ -117,6 +223,7 @@ export default function StudentPage() {
   const [settings, setSettings] = useState({ subjectName: '', className: '' });
   const [loading, setLoading] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [toasts, setToasts] = useState([]);
   const router = useRouter();
 
@@ -229,9 +336,14 @@ export default function StudentPage() {
               {settings.subjectName && <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>{settings.subjectName} {settings.className}</p>}
             </div>
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
-            🚪 ออกจากระบบ
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowAttendanceModal(true)}>
+              📍 เช็คชื่อ
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
+              🚪 ออกจากระบบ
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -374,7 +486,22 @@ export default function StudentPage() {
           <EditProfileModal
             student={student}
             onClose={() => setShowProfileModal(false)}
-            onSuccess={handleProfileSuccess}
+            onSuccess={(newAvatarUrl) => {
+              setStudent({ ...student, avatarUrl: newAvatarUrl });
+              setShowProfileModal(false);
+              addToast('อัปเดตโปรไฟล์เรียบร้อยแล้ว');
+            }}
+          />
+        )}
+
+        {showAttendanceModal && (
+          <AttendanceCheckModal
+            student={student}
+            onClose={() => setShowAttendanceModal(false)}
+            onSuccess={(msg) => {
+              setShowAttendanceModal(false);
+              addToast(msg);
+            }}
           />
         )}
       </div>

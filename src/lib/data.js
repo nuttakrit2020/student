@@ -379,3 +379,23 @@ export async function getSubmissionSummary() {
 
   return { students, assignments, submissions: summary };
 }
+
+// ==================== ATTENDANCE ====================
+export async function getAttendances() {
+  if (db) {
+    const snapshot = await getDocs(collection(db, 'attendances'));
+    return snapshot.docs.map(d => d.data());
+  }
+  return readJSON('attendances.json');
+}
+
+export async function addAttendance(attendance) {
+  if (db) {
+    await setDoc(doc(db, 'attendances', attendance.id), attendance);
+    return attendance;
+  }
+  const attendances = readJSON('attendances.json');
+  attendances.push(attendance);
+  writeJSON('attendances.json', attendances);
+  return attendance;
+}
