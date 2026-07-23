@@ -339,6 +339,23 @@ function BulkStudentModal({ adminKey, onClose, onSuccess }) {
   );
 }
 
+// Haversine distance in meters
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+  const R = 6371e3; // metres
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return Math.round(R * c);
+}
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('summary');
   const [data, setData] = useState(null);
@@ -348,6 +365,8 @@ export default function AdminPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [subjectName, setSubjectName] = useState('');
   const [className, setClassName] = useState('');
+  const [targetLat, setTargetLat] = useState(null);
+  const [targetLng, setTargetLng] = useState(null);
   const [qrCode, setQrCode] = useState('');
   const [showQrCode, setShowQrCode] = useState(true);
   const [adminAvatarUrl, setAdminAvatarUrl] = useState('');
@@ -392,6 +411,8 @@ export default function AdminPage() {
         if (result.settings) {
           setSubjectName(result.settings.subjectName || '');
           setClassName(result.settings.className || '');
+          setTargetLat(result.settings.targetLat || null);
+          setTargetLng(result.settings.targetLng || null);
           setQrCode(result.settings.qrCode || '');
           setAdminAvatarUrl(result.settings.adminAvatarUrl || '');
         }
@@ -733,6 +754,43 @@ export default function AdminPage() {
     } catch (err) {
       addToast('เกิดข้อผิดพลาด', 'error');
     }
+  };
+
+  const handleSetTargetLocation = () => {
+    if (!navigator.geolocation) {
+      addToast('เบราว์เซอร์ของคุณไม่รองรับ GPS', 'error');
+      return;
+    }
+    setSavingSettings(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        try {
+          const res = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminKey, targetLat: lat, targetLng: lng })
+          });
+          if (res.ok) {
+            setTargetLat(lat);
+            setTargetLng(lng);
+            addToast('บันทึกพิกัดห้องเรียนสำเร็จ');
+          } else {
+            addToast('ไม่สามารถบันทึกพิกัดได้', 'error');
+          }
+        } catch (err) {
+          addToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+        } finally {
+          setSavingSettings(false);
+        }
+      },
+      (err) => {
+        setSavingSettings(false);
+        addToast('ไม่สามารถดึงพิกัด GPS ได้ (กรุณาอนุญาต Location)', 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   const handleLogout = () => {
@@ -1234,9 +1292,28 @@ export default function AdminPage() {
 
         {activeTab === 'attendance' && (
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
-            <div className="card-header" style={{ marginBottom: '16px' }}>
+            <div className="card-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📍 ประวัติเช็คชื่อ</h2>
+              <button 
+                className="btn btn-primary btn-sm" 
+                onClick={handleSetTargetLocation}
+                disabled={savingSettings}
+              >
+                {savingSettings ? 'กำลังค้นหา...' : '📍 ดึงพิกัดปัจจุบันเป็นห้องเรียน'}
+              </button>
             </div>
+            
+            {targetLat && targetLng && (
+              <div style={{ background: '#e6f4ea', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem', color: '#137333', border: '1px solid #ceead6' }}>
+                ✅ ตั้งพิกัดห้องเรียนแล้ว (ระยะที่อนุญาต: ไม่เกิน 50 เมตร)
+              </div>
+            )}
+            
+            {!targetLat && (
+              <div style={{ background: '#fef7e0', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem', color: '#b06000', border: '1px solid #feefc3' }}>
+                ⚠️ คุณครูยังไม่ได้ตั้งพิกัดห้องเรียน กรุณากดปุ่ม <b>"ดึงพิกัดปัจจุบันเป็นห้องเรียน"</b> เพื่อให้ระบบตรวจสอบระยะทางอัตโนมัติ
+              </div>
+            )}
             
             {attendances.length === 0 ? (
               <div className="empty-state">
@@ -1265,9 +1342,35 @@ export default function AdminPage() {
                           <td>{att.studentId}</td>
                           <td>{studentInfo ? studentInfo.name : 'ไม่ทราบชื่อ'}</td>
                           <td>
-                            <a href={`https://maps.google.com/?q=${att.lat},${att.lng}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', display: 'inline-block' }}>
-                              🗺️ ดูแผนที่
-                            </a>
+                            {targetLat && targetLng ? (
+                              (() => {
+                                const dist = calculateDistance(targetLat, targetLng, att.lat, att.lng);
+                                const isOk = dist <= 50;
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <span style={{ 
+                                      color: isOk ? '#137333' : '#d93025', 
+                                      fontWeight: 600, 
+                                      fontSize: '0.9rem',
+                                      background: isOk ? '#e6f4ea' : '#fce8e6',
+                                      padding: '4px 8px',
+                                      borderRadius: '12px',
+                                      display: 'inline-block',
+                                      textAlign: 'center'
+                                    }}>
+                                      {isOk ? `🟢 ตรงจุด (${dist} ม.)` : `🔴 ผิดจุด! ห่าง ${dist} ม.`}
+                                    </span>
+                                    <a href={`https://maps.google.com/?q=${att.lat},${att.lng}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary" style={{ padding: '2px 4px', fontSize: '11px', display: 'inline-block', textAlign: 'center' }}>
+                                      🗺️ ดูแผนที่
+                                    </a>
+                                  </div>
+                                );
+                              })()
+                            ) : (
+                              <a href={`https://maps.google.com/?q=${att.lat},${att.lng}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', display: 'inline-block' }}>
+                                🗺️ ดูแผนที่
+                              </a>
+                            )}
                           </td>
                           <td>
                             <a href={att.photo} target="_blank" rel="noopener noreferrer">

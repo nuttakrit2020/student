@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSettings, updateSettings } from '@/lib/data';
 
 export async function GET() {
@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { subjectName, className, adminKey, qrCode, adminAvatarUrl } = body;
+    const { subjectName, className, adminKey, qrCode, adminAvatarUrl, targetLat, targetLng } = body;
 
     if (adminKey !== 'admin2569') {
       return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึง' }, { status: 403 });
@@ -25,6 +25,8 @@ export async function POST(request) {
     const updates = { subjectName, className };
     if (qrCode !== undefined) updates.qrCode = qrCode;
     if (adminAvatarUrl !== undefined) updates.adminAvatarUrl = adminAvatarUrl;
+    if (targetLat !== undefined) updates.targetLat = targetLat;
+    if (targetLng !== undefined) updates.targetLng = targetLng;
 
     const newSettings = await updateSettings(updates);
     return NextResponse.json({ settings: newSettings });
