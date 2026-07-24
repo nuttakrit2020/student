@@ -320,12 +320,15 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
 }
 
 function LeaveRequestModal({ student, onClose, onSuccess }) {
+  const todayStr = new Date().toLocaleDateString('sv').split('T')[0];
+  const [leaveDate, setLeaveDate] = useState(todayStr);
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!reason.trim()) return alert('กรุณาระบุเหตุผลการลา');
+    if (!leaveDate) return alert('กรุณาเลือกวันที่ต้องการลา');
     setLoading(true);
     try {
       const res = await fetch('/api/attendance', {
@@ -335,7 +338,7 @@ function LeaveRequestModal({ student, onClose, onSuccess }) {
           studentId: student.id, 
           type: 'leave',
           reason: reason,
-          timestamp: new Date().toISOString() 
+          timestamp: new Date(leaveDate + 'T08:00:00.000Z').toISOString() 
         })
       });
       if (res.ok) {
@@ -355,6 +358,16 @@ function LeaveRequestModal({ student, onClose, onSuccess }) {
       <div className="modal" style={{ width: '90%', maxWidth: '400px' }}>
         <h3 style={{ textAlign: 'center', marginBottom: '16px' }}>📝 แจ้งลาเรียน</h3>
         <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>วันที่ต้องการลา</label>
+            <input 
+              type="date"
+              className="form-input"
+              value={leaveDate}
+              onChange={(e) => setLeaveDate(e.target.value)}
+              required
+            />
+          </div>
           <div className="form-group">
             <label>เหตุผลการลา (ไปไหน ทำไมถึงลา)</label>
             <textarea 
@@ -420,19 +433,25 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
           const isClassDay = classDay !== null && date.getDay() === classDay;
           
           const att = attendances.find(a => {
-            const aDate = new Date(a.createdAt);
-            // shift offset to match local day simple
-            return a.createdAt.startsWith(dateStr) || aDate.toLocaleDateString('sv').startsWith(dateStr);
+            const aDate = new Date(a.timestamp);
+            return a.timestamp.startsWith(dateStr) || aDate.toLocaleDateString('sv').startsWith(dateStr);
           });
           
           let circleColor = 'transparent';
           let textColor = '#333';
+          let content = date.getDate();
           
           if (isClassDay) {
              if (att) {
                 if (att.type === 'leave') {
-                   circleColor = '#fbbc04';
-                   textColor = '#fff';
+                   if (att.status === 'pending') {
+                     circleColor = '#f39c12'; // Orange/amber for pending
+                     textColor = '#fff';
+                     content = '⏳';
+                   } else {
+                     circleColor = '#fbbc04'; // Yellow for approved
+                     textColor = '#fff';
+                   }
                 } else {
                    circleColor = '#34a853';
                    textColor = '#fff';
@@ -454,10 +473,10 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
                 width: '30px', height: '30px', borderRadius: '50%',
                 background: circleColor, color: textColor,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.9rem', fontWeight: isToday ? 700 : 500,
+                fontSize: content === '⏳' ? '0.8rem' : '0.9rem', fontWeight: isToday ? 700 : 500,
                 border: isToday ? '2px solid #1a73e8' : 'none'
               }}>
-                {date.getDate()}
+                {content}
               </div>
             </div>
           );
@@ -469,7 +488,10 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
           <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#34a853' }}></div> มาเรียน
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#fbbc04' }}></div> ลา
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#fbbc04' }}></div> ลา (อนุมัติ)
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f39c12' }}></div> ลา (รออนุมัติ)
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ea4335' }}></div> ขาด

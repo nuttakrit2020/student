@@ -33,6 +33,7 @@ export async function POST(request) {
         lng: lng || null,
         distance: null,
         isOk: type === 'leave' ? null : true, // manual present is always ok
+        status: 'approved', // Admin creates are auto-approved
         photo: photo || '',
         timestamp: timestamp || new Date().toISOString(),
         createdAt: timestamp || new Date().toISOString()
@@ -74,6 +75,7 @@ export async function POST(request) {
       lng: lng || null,
       distance,
       isOk,
+      status: isLeave ? 'pending' : 'approved',
       photo: photo || '',
       timestamp,
       createdAt: new Date().toISOString()

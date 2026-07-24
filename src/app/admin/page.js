@@ -683,7 +683,8 @@ export default function AdminPage() {
             updates: {
               type: newType,
               reason: newReason,
-              isOk: newType === 'leave' ? null : true
+              isOk: newType === 'leave' ? null : true,
+              status: 'approved'
             }
           })
         });
@@ -1578,7 +1579,7 @@ export default function AdminPage() {
           const startOfWeek = new Date(now);
           startOfWeek.setDate(now.getDate() - now.getDay() + 1 + (calendarWeekOffset * 7)); // Monday
           const weekDays = [];
-          const dayNames = ['\u0e08.', '\u0e2d.', '\u0e1e.', '\u0e1e\u0e24.', '\u0e28.'];
+          const dayNames = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.'];
           const dayIndices = [1, 2, 3, 4, 5]; // Mon=1, Tue=2, ...Fri=5
           for (let i = 0; i < 5; i++) {
             const d = new Date(startOfWeek);
@@ -1604,11 +1605,61 @@ export default function AdminPage() {
             return room.replace(/^ม\.?\s*/, '').trim();
           };
 
+          const pendingLeaves = data.attendances.filter(a => a.type === 'leave' && a.status === 'pending');
+          const pendingLeavesWithStudent = pendingLeaves.map(a => ({
+             ...a,
+             student: data.students.find(s => s.id === a.studentId)
+          })).filter(a => a.student);
+
           return (
-            <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
-              <div className="card-header" style={{ marginBottom: '16px' }}>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{'\ud83d\udcc5'} ตารางเช็คชื่อรายสัปดาห์</h2>
-              </div>
+            <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {pendingLeavesWithStudent.length > 0 && (
+                <div className="card" style={{ borderLeft: '4px solid #f39c12', background: '#fffef0' }}>
+                  <div className="card-header" style={{ marginBottom: '12px' }}>
+                    <h3 style={{ fontSize: '1.1rem', color: '#d68200' }}>🔔 คำร้องขอลาเรียนรออนุมัติ ({pendingLeavesWithStudent.length})</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {pendingLeavesWithStudent.map(req => {
+                      const reqDate = new Date(req.timestamp).toLocaleDateString('th-TH');
+                      return (
+                        <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #f0e6cc' }}>
+                          <div>
+                            <strong>{req.student.name} ({req.student.nickname})</strong>
+                            <div style={{ fontSize: '0.85rem', color: '#555', marginTop: '4px' }}>
+                              ขอลาวันที่: {reqDate} <br/>
+                              เหตุผล: {req.reason}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                              className="btn btn-primary btn-sm"
+                              onClick={async () => {
+                                await fetch('/api/attendance', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ adminKey, id: req.id, updates: { status: 'approved' } })
+                                });
+                                fetchData(adminKey);
+                                addToast('อนุมัติการลาแล้ว');
+                              }}
+                            >อนุมัติ</button>
+                            <button 
+                              className="btn btn-secondary btn-sm"
+                              style={{ color: '#d93025', borderColor: '#d93025' }}
+                              onClick={() => handleDeleteAttendance(req.id, req.student.name, true)}
+                            >ปฏิเสธ</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            
+              <div className="card">
+                <div className="card-header" style={{ marginBottom: '16px' }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{'\ud83d\udcc5'} ตารางเช็คชื่อรายสัปดาห์</h2>
+                </div>
 
               <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o - 1)} style={{ padding: '8px 12px' }}>{'\u25c0'} สัปดาห์ก่อน</button>
@@ -1708,8 +1759,13 @@ export default function AdminPage() {
                                 if (att) {
                                   presentCount++;
                                   if (att.type === 'leave') {
-                                    cellContent = '🟡';
-                                    cellStyle.background = '#fff9c4';
+                                    if (att.status === 'pending') {
+                                      cellContent = '⏳';
+                                      cellStyle.background = '#fdf3d8'; // Light orange
+                                    } else {
+                                      cellContent = '🟡';
+                                      cellStyle.background = '#fff9c4';
+                                    }
                                   } else if (att.isOk === false) {
                                     cellContent = '\u26a0\ufe0f';
                                     cellStyle.background = '#fff3e0';
@@ -1735,7 +1791,9 @@ export default function AdminPage() {
                               }
 
                               let tooltip = '';
-                              if (att && att.type === 'leave') tooltip = `ลา: ${att.reason}`;
+                              if (att && att.type === 'leave') {
+                                tooltip = att.status === 'pending' ? `รออนุมัติลา: ${att.reason}` : `ลา: ${att.reason}`;
+                              }
                               else if (att && att.isOk === false) tooltip = `ผิดจุด! ห่าง ${att.distance} ม.`;
                               else if (!isClassDay) tooltip = 'ไม่มีคาบเรียน';
                               
@@ -1777,11 +1835,11 @@ export default function AdminPage() {
 
               <div style={{ display: 'flex', gap: '24px', marginTop: '16px', flexWrap: 'wrap', fontSize: '0.9rem' }}>
                 <span>{'\u2705'} = มาเรียน</span>
-                <span>🟡 = ลา</span>
+                <span>🟡 = ลา (อนุมัติ)</span>
+                <span>⏳ = ลา (รออนุมัติ) / ยังไม่ถึงวัน</span>
                 <span>{'\u274c'} = ขาดเรียน</span>
                 <span>{'\u26a0\ufe0f'} = มาแต่ผิดจุด (นอกรัศมี 8 ม.)</span>
                 <span>{'\u2014'} = ไม่มีคาบเรียนวันนี้</span>
-                <span>{'\u23f3'} = ยังไม่ถึงวัน</span>
               </div>
 
               {/* Cute Schedule reference */}
