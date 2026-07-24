@@ -394,9 +394,13 @@ function LeaveRequestModal({ student, onClose, onSuccess }) {
 }
 
 function StudentCalendar({ attendances, classSchedules, studentRoom }) {
+  const [monthOffset, setMonthOffset] = useState(0);
+
   const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
+  const displayDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+  const year = displayDate.getFullYear();
+  const month = displayDate.getMonth();
+  
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   
@@ -413,11 +417,22 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
   for (let i = 1; i <= daysInMonth; i++) {
     days.push(new Date(year, month, i));
   }
+
+  const thaiMonths = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ];
+  const monthName = `${thaiMonths[month]} ${year + 543}`;
   
   return (
     <div className="card" style={{ marginBottom: '16px' }}>
-      <div className="card-header">
-        <span className="card-title">📅 ปฏิทินเช็คชื่อ (เดือนนี้)</span>
+      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span className="card-title">📅 ปฏิทินเช็คชื่อ</span>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setMonthOffset(o => o - 1)} style={{ padding: '4px 8px' }}>◀</button>
+          <span style={{ fontWeight: 600, fontSize: '0.9rem', minWidth: '100px', textAlign: 'center' }}>{monthName}</span>
+          <button className="btn btn-secondary btn-sm" onClick={() => setMonthOffset(o => o + 1)} style={{ padding: '4px 8px' }}>▶</button>
+        </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '8px' }}>
         {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map(d => (
