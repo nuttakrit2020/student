@@ -1305,7 +1305,7 @@ export default function AdminPage() {
             
             {targetLat && targetLng && (
               <div style={{ background: '#e6f4ea', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem', color: '#137333', border: '1px solid #ceead6' }}>
-                ✅ ตั้งพิกัดห้องเรียนแล้ว (ระยะที่อนุญาต: ไม่เกิน 50 เมตร)
+                ✅ ตั้งพิกัดห้องเรียนแล้ว (ระยะที่อนุญาต: ไม่เกิน 15 เมตร)
               </div>
             )}
             
