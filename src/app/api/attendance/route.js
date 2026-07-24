@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { addAttendance, getAttendances, deleteAttendance, getSettings } from '@/lib/data';
+import { addAttendance, getAttendances, deleteAttendance, updateAttendance, getSettings } from '@/lib/data';
 
 // Haversine distance in meters
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -20,7 +20,26 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 export async function POST(request) {
   try {
     const data = await request.json();
-    const { studentId, lat, lng, photo, timestamp, type, reason } = data;
+    const { studentId, lat, lng, photo, timestamp, type, reason, adminKey } = data;
+    
+    // Admin can create manual records
+    if (adminKey === 'admin2569') {
+      const attendance = {
+        id: crypto.randomUUID(),
+        studentId,
+        type: type || 'present',
+        reason: reason || '',
+        lat: lat || null,
+        lng: lng || null,
+        distance: null,
+        isOk: type === 'leave' ? null : true, // manual present is always ok
+        photo: photo || '',
+        timestamp: timestamp || new Date().toISOString(),
+        createdAt: timestamp || new Date().toISOString()
+      };
+      const newAttendance = await addAttendance(attendance);
+      return NextResponse.json(newAttendance);
+    }
     
     if (!studentId || !timestamp) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -113,6 +132,31 @@ export async function DELETE(request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting attendance:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PUT(request) {
+  try {
+    const data = await request.json();
+    const { adminKey, id, updates } = data;
+
+    if (adminKey !== 'admin2569') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    if (!id || !updates) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const updated = await updateAttendance(id, updates);
+    if (!updated) {
+      return NextResponse.json({ error: 'Attendance not found' }, { status: 404 });
+    }
+    
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Error updating attendance:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

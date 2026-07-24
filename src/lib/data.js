@@ -410,3 +410,21 @@ export async function deleteAttendance(id) {
   writeJSON('attendances.json', filtered);
   return true;
 }
+
+export async function updateAttendance(id, updates) {
+  if (db) {
+    const docRef = doc(db, 'attendances', id);
+    const d = await getDoc(docRef);
+    if (!d.exists()) return null;
+    await updateDoc(docRef, updates);
+    return { ...d.data(), ...updates };
+  }
+  
+  const attendances = readJSON('attendances.json');
+  const index = attendances.findIndex((a) => a.id === id);
+  if (index === -1) return null;
+  
+  attendances[index] = { ...attendances[index], ...updates };
+  writeJSON('attendances.json', attendances);
+  return attendances[index];
+}

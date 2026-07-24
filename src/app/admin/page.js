@@ -383,6 +383,7 @@ export default function AdminPage() {
   const [filterAttDate, setFilterAttDate] = useState('today');
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [calendarRoom, setCalendarRoom] = useState('');
+  const [editingCell, setEditingCell] = useState(null);
   const [classSchedules, setClassSchedules] = useState({
     '3/1': { day: 4, start: '13:30', end: '14:20', label: 'พฤหัสบดี 13:30-14:20' },
     '3/2': { day: 5, start: '11:50', end: '12:40', label: 'ศุกร์ 11:50-12:40' },
@@ -651,12 +652,78 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteAttendance = async (id, name) => {
-    if (!confirm(`ต้องการลบประวัติเช็คชื่อของ ${name} ใช่หรือไม่?\nนักเรียนจะสามารถกดเช็คชื่อใหม่ได้`)) return;
+  const handleEditAttendance = async (studentId, dateStr, newType, newReason = '') => {
+    try {
+      // dateStr is 'DD/MM/YYYY' (Thai year). Convert to YYYY-MM-DD
+      const dateParts = dateStr.split('/');
+      const yyyy = parseInt(dateParts[2]) - 543;
+      const mm = dateParts[1].padStart(2, '0');
+      const dd = dateParts[0].padStart(2, '0');
+      const searchDate = `${yyyy}-${mm}-${dd}`;
+
+      let existingAtt = data.attendances.find(a => 
+        a.studentId === studentId && 
+        (a.timestamp.startsWith(searchDate) || new Date(a.createdAt).toLocaleDateString('th-TH') === dateStr)
+      );
+
+      if (newType === 'absent') {
+        if (existingAtt) {
+           await handleDeleteAttendance(existingAtt.id, 'ลบสถานะเช็คชื่อ', true);
+        }
+        return;
+      }
+
+      if (existingAtt) {
+        const res = await fetch('/api/attendance', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            adminKey: adminKey,
+            id: existingAtt.id,
+            updates: {
+              type: newType,
+              reason: newReason,
+              isOk: newType === 'leave' ? null : true
+            }
+          })
+        });
+        if (res.ok) {
+          addToast('บันทึกการแก้ไขสำเร็จ');
+          fetchData(adminKey);
+        } else {
+          addToast('เกิดข้อผิดพลาดในการบันทึก', 'error');
+        }
+      } else {
+        const res = await fetch('/api/attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            adminKey: adminKey,
+            studentId: studentId,
+            type: newType,
+            reason: newReason,
+            timestamp: `${searchDate}T08:00:00.000Z`
+          })
+        });
+        if (res.ok) {
+          addToast('บันทึกการเพิ่มข้อมูลสำเร็จ');
+          fetchData(adminKey);
+        } else {
+          addToast('เกิดข้อผิดพลาดในการเพิ่มข้อมูล', 'error');
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      addToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+    }
+  };
+
+  const handleDeleteAttendance = async (id, name, silent = false) => {
+    if (!silent && !confirm(`ต้องการลบประวัติเช็คชื่อของ ${name} ใช่หรือไม่?\nนักเรียนจะสามารถกดเช็คชื่อใหม่ได้`)) return;
     try {
       const res = await fetch(`/api/attendance?id=${id}&adminKey=${adminKey}`, { method: 'DELETE' });
       if (res.ok) {
-        addToast('ลบประวัติเช็คชื่อสำเร็จ');
+        if (!silent) addToast('ลบประวัติเช็คชื่อสำเร็จ');
         fetchData(adminKey);
       } else {
         addToast('ไม่สามารถลบประวัติเช็คชื่อได้', 'error');
@@ -1550,6 +1617,22 @@ export default function AdminPage() {
                 {calendarWeekOffset !== 0 && (
                   <button className="btn btn-primary btn-sm" onClick={() => setCalendarWeekOffset(0)} style={{ padding: '8px 12px' }}>{'\ud83d\udccd'} สัปดาห์นี้</button>
                 )}
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  style={{ background: '#f8cecc', color: '#a23733', borderColor: '#b85450' }}
+                  onClick={() => {
+                     const now = new Date();
+                     const startOfWeekNow = new Date(now);
+                     startOfWeekNow.setDate(now.getDate() - now.getDay() + 1);
+                     startOfWeekNow.setHours(0, 0, 0, 0);
+                     const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
+                     const diff = startOfSemester.getTime() - startOfWeekNow.getTime();
+                     const diffWeeks = Math.round(diff / (7 * 24 * 60 * 60 * 1000));
+                     setCalendarWeekOffset(diffWeeks);
+                  }}
+                >
+                  📅 เริ่มเทอม (18 พ.ค. 69)
+                </button>
                 <select
                   className="form-input"
                   style={{ width: 'auto', minWidth: '150px', padding: '8px 12px' }}
@@ -1644,13 +1727,36 @@ export default function AdminPage() {
                                 cellStyle.borderLeft = '2px solid #1a73e8';
                                 cellStyle.borderRight = '2px solid #1a73e8';
                               }
+                              
+                              if (isClassDay && !isFuture) {
+                                cellStyle.cursor = 'pointer';
+                                cellStyle.transition = 'background 0.2s';
+                                // Simple hover effect via inline style isn't possible, but we keep the cursor
+                              }
 
                               let tooltip = '';
                               if (att && att.type === 'leave') tooltip = `ลา: ${att.reason}`;
                               else if (att && att.isOk === false) tooltip = `ผิดจุด! ห่าง ${att.distance} ม.`;
                               else if (!isClassDay) tooltip = 'ไม่มีคาบเรียน';
                               
-                              return <td key={i} style={cellStyle} title={tooltip}>{cellContent}</td>;
+                              return (
+                                <td 
+                                  key={i} 
+                                  style={cellStyle} 
+                                  title={tooltip}
+                                  onClick={() => {
+                                    if (isClassDay && !isFuture) {
+                                      setEditingCell({
+                                        student,
+                                        dateStr,
+                                        att
+                                      });
+                                    }
+                                  }}
+                                >
+                                  {cellContent}
+                                </td>
+                              );
                             })}
                             <td style={{ textAlign: 'center', fontWeight: 600, fontFamily: 'var(--font-en)' }}>
                               {schedule ? (
@@ -1730,8 +1836,69 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+            </div>
           );
         })()}
+
+        {editingCell && (
+          <div className="modal-overlay" onClick={() => setEditingCell(null)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+              <h3 style={{ marginBottom: '16px', textAlign: 'center' }}>✏️ แก้ไขการเช็คชื่อ</h3>
+              <p style={{ marginBottom: '8px' }}><strong>นักเรียน:</strong> {editingCell.student.name} ({editingCell.student.nickname})</p>
+              <p style={{ marginBottom: '16px' }}><strong>วันที่:</strong> {editingCell.dateStr}</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button 
+                  className="btn btn-secondary"
+                  style={{ background: '#e6f4ea', borderColor: '#137333', color: '#137333', textAlign: 'left', padding: '12px' }}
+                  onClick={() => {
+                    handleEditAttendance(editingCell.student.id, editingCell.dateStr, 'present');
+                    setEditingCell(null);
+                  }}
+                >
+                  🟢 มาเรียน (ปกติ)
+                </button>
+                
+                <div style={{ background: '#fff9c4', border: '1px solid #b08d00', borderRadius: '8px', padding: '12px' }}>
+                  <div style={{ color: '#b08d00', fontWeight: 600, marginBottom: '8px' }}>🟡 ลาเรียน</div>
+                  <input 
+                    type="text" 
+                    placeholder="เหตุผลการลา..." 
+                    className="form-input"
+                    id="leave-reason-input"
+                    defaultValue={editingCell.att?.type === 'leave' ? editingCell.att.reason : ''}
+                  />
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    style={{ marginTop: '8px', width: '100%' }}
+                    onClick={() => {
+                      const r = document.getElementById('leave-reason-input').value;
+                      handleEditAttendance(editingCell.student.id, editingCell.dateStr, 'leave', r);
+                      setEditingCell(null);
+                    }}
+                  >
+                    บันทึกสถานะลา
+                  </button>
+                </div>
+
+                <button 
+                  className="btn btn-secondary"
+                  style={{ background: '#fce8e6', borderColor: '#d93025', color: '#d93025', textAlign: 'left', padding: '12px' }}
+                  onClick={() => {
+                    handleEditAttendance(editingCell.student.id, editingCell.dateStr, 'absent');
+                    setEditingCell(null);
+                  }}
+                >
+                  🔴 ขาดเรียน (ลบข้อมูล)
+                </button>
+              </div>
+
+              <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => setEditingCell(null)}>ยกเลิก</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {activeTab === 'settings' && (
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
