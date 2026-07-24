@@ -1145,7 +1145,8 @@ export default function AdminPage() {
                       todayDate.setHours(0, 0, 0, 0);
                       const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
                       
-                      const roomKey = getRoomKey(row.student?.room);
+                      const localGetRoomKey = (r) => r ? '3/' + r.replace(/^ม\.?\s*/, '').replace(/^3\//, '').trim() : '';
+                      const roomKey = localGetRoomKey(row.student?.room);
                       const schedule = classSchedules[roomKey];
                       const classDay = schedule ? schedule.day : null;
 
