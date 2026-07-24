@@ -442,8 +442,8 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
         {days.map((date, index) => {
           if (!date) return <div key={`empty-${index}`} />;
           
-          const dateStr = date.toISOString().split('T')[0];
-          const isToday = dateStr === today.toISOString().split('T')[0];
+          const dateStr = date.toLocaleDateString('sv');
+          const isToday = dateStr === today.toLocaleDateString('sv');
           const isClassDay = classDay !== null && date.getDay() === classDay;
           
           const att = attendances.find(a => {
@@ -637,7 +637,7 @@ export default function StudentPage() {
     let d = new Date(startOfSemester);
     while (d <= todayDate) {
       if (d.getDay() === classDay) {
-        const dateStr = d.toISOString().split('T')[0];
+        const dateStr = d.toLocaleDateString('sv');
         const att = attendances.find(a => {
           const aDate = new Date(a.timestamp);
           return a.timestamp.startsWith(dateStr) || aDate.toLocaleDateString('sv').startsWith(dateStr);

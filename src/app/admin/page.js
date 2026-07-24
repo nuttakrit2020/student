@@ -1153,7 +1153,7 @@ export default function AdminPage() {
                         let d = new Date(startOfSemester);
                         while (d <= todayDate) {
                           if (d.getDay() === classDay) {
-                            const dateStr = d.toISOString().split('T')[0];
+                            const dateStr = d.toLocaleDateString('sv');
                             const att = attendances.find(a => {
                               if (a.studentId !== row.student.id) return false;
                               const aDate = new Date(a.timestamp);
