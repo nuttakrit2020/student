@@ -319,14 +319,176 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
   );
 }
 
+function LeaveRequestModal({ student, onClose, onSuccess }) {
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!reason.trim()) return alert('กรุณาระบุเหตุผลการลา');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          studentId: student.id, 
+          type: 'leave',
+          reason: reason,
+          timestamp: new Date().toISOString() 
+        })
+      });
+      if (res.ok) {
+        onSuccess('ส่งคำร้องขอลาเรียนสำเร็จแล้ว');
+      } else {
+        alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      }
+    } catch (err) {
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal" style={{ width: '90%', maxWidth: '400px' }}>
+        <h3 style={{ textAlign: 'center', marginBottom: '16px' }}>📝 แจ้งลาเรียน</h3>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>เหตุผลการลา (ไปไหน ทำไมถึงลา)</label>
+            <textarea 
+              className="form-input" 
+              rows="4"
+              value={reason} 
+              onChange={(e) => setReason(e.target.value)} 
+              placeholder="เช่น ลาป่วยไปหาหมอ, ลากิจไปต่างจังหวัดกับครอบครัว..."
+              required
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px' }}>
+            <button type="submit" className="btn btn-primary" disabled={loading || !reason.trim()}>
+              {loading ? 'กำลังส่ง...' : '📤 ส่งคำร้อง'}
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
+              ยกเลิก
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function StudentCalendar({ attendances, classSchedules, studentRoom }) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  
+  const daysInMonth = lastDay.getDate();
+  const startingDayOfWeek = firstDay.getDay();
+  
+  const schedule = classSchedules ? classSchedules[studentRoom] : null;
+  const classDay = schedule ? schedule.day : null;
+
+  const days = [];
+  for (let i = 0; i < startingDayOfWeek; i++) {
+    days.push(null);
+  }
+  for (let i = 1; i <= daysInMonth; i++) {
+    days.push(new Date(year, month, i));
+  }
+  
+  return (
+    <div className="card" style={{ marginBottom: '16px' }}>
+      <div className="card-header">
+        <span className="card-title">📅 ปฏิทินเช็คชื่อ (เดือนนี้)</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center', marginBottom: '8px' }}>
+        {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map(d => (
+          <div key={d} style={{ fontSize: '0.8rem', fontWeight: 600, color: '#666' }}>{d}</div>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', textAlign: 'center' }}>
+        {days.map((date, index) => {
+          if (!date) return <div key={`empty-${index}`} />;
+          
+          const dateStr = date.toISOString().split('T')[0];
+          const isToday = dateStr === today.toISOString().split('T')[0];
+          const isClassDay = classDay !== null && date.getDay() === classDay;
+          
+          const att = attendances.find(a => {
+            const aDate = new Date(a.createdAt);
+            // shift offset to match local day simple
+            return a.createdAt.startsWith(dateStr) || aDate.toLocaleDateString('sv').startsWith(dateStr);
+          });
+          
+          let circleColor = 'transparent';
+          let textColor = '#333';
+          
+          if (isClassDay) {
+             if (att) {
+                if (att.type === 'leave') {
+                   circleColor = '#fbbc04';
+                   textColor = '#fff';
+                } else {
+                   circleColor = '#34a853';
+                   textColor = '#fff';
+                }
+             } else if (date < today) {
+                circleColor = '#ea4335';
+                textColor = '#fff';
+             } else if (isToday) {
+                circleColor = '#ea4335';
+                textColor = '#fff';
+             } else {
+                circleColor = '#f1f3f4';
+             }
+          }
+          
+          return (
+            <div key={dateStr} style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{
+                width: '30px', height: '30px', borderRadius: '50%',
+                background: circleColor, color: textColor,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.9rem', fontWeight: isToday ? 700 : 500,
+                border: isToday ? '2px solid #1a73e8' : 'none'
+              }}>
+                {date.getDate()}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px', fontSize: '0.8rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#34a853' }}></div> มาเรียน
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#fbbc04' }}></div> ลา
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#ea4335' }}></div> ขาด
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentPage() {
   const [student, setStudent] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [submissions, setSubmissions] = useState([]);
-  const [settings, setSettings] = useState({ subjectName: '', className: '' });
+  const [attendances, setAttendances] = useState([]);
+  const [settings, setSettings] = useState({ subjectName: '', className: '', classSchedules: {} });
   const [loading, setLoading] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [isLineBrowser, setIsLineBrowser] = useState(false);
   const router = useRouter();
@@ -355,18 +517,21 @@ export default function StudentPage() {
 
   const fetchData = useCallback(async (studentData) => {
     try {
-      const [assignRes, subRes, setRes] = await Promise.all([
+      const [assignRes, subRes, setRes, attRes] = await Promise.all([
         fetch('/api/assignments'),
         fetch(`/api/submissions?studentId=${studentData.id}`),
         fetch('/api/settings'),
+        fetch(`/api/attendance?studentId=${studentData.id}`),
       ]);
 
       const assignData = await assignRes.json();
       const subData = await subRes.json();
       const setData = await setRes.json();
+      const attData = await attRes.json();
 
       setAssignments(assignData.assignments || []);
       setSubmissions(subData.submissions || []);
+      setAttendances(Array.isArray(attData) ? attData : []);
       if (setData.settings) {
         setSettings(setData.settings);
       }
@@ -460,14 +625,22 @@ export default function StudentPage() {
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowAttendanceModal(true)}>
-              📍 เช็คชื่อ
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => setShowAttendanceModal(true)}>
+                📍 เช็คชื่อ
+              </button>
+              <button className="btn btn-secondary btn-sm" style={{ flex: 1, background: '#fff3cd', color: '#856404', borderColor: '#ffeeba' }} onClick={() => setShowLeaveModal(true)}>
+                📝 ลาเรียน
+              </button>
+            </div>
             <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
               🚪 ออกจากระบบ
             </button>
           </div>
         </div>
+
+        {/* Student Calendar */}
+        <StudentCalendar attendances={attendances} classSchedules={settings.classSchedules} studentRoom={student?.room} />
 
         {/* Stats */}
         <div className="stats-grid">
@@ -624,6 +797,19 @@ export default function StudentPage() {
             onSuccess={(msg) => {
               setShowAttendanceModal(false);
               addToast(msg);
+              fetchData(student);
+            }}
+          />
+        )}
+        
+        {showLeaveModal && (
+          <LeaveRequestModal
+            student={student}
+            onClose={() => setShowLeaveModal(false)}
+            onSuccess={(msg) => {
+              setShowLeaveModal(false);
+              addToast(msg);
+              fetchData(student);
             }}
           />
         )}

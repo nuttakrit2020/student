@@ -19,31 +19,43 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 export async function POST(request) {
   try {
-    const { studentId, lat, lng, photo, timestamp } = await request.json();
+    const data = await request.json();
+    const { studentId, lat, lng, photo, timestamp, type, reason } = data;
     
-    if (!studentId || !photo || !timestamp) {
+    if (!studentId || !timestamp) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Calculate distance if target is set
-    const settings = await getSettings();
+    const isLeave = type === 'leave';
+
+    if (!isLeave && !photo) {
+      return NextResponse.json({ error: 'Missing photo for check-in' }, { status: 400 });
+    }
+
     let distance = null;
     let isOk = null;
-    if (settings && settings.targetLat && settings.targetLng) {
-      distance = calculateDistance(settings.targetLat, settings.targetLng, lat, lng);
-      if (distance !== null) {
-        isOk = distance <= 8;
+
+    if (!isLeave) {
+      // Calculate distance if target is set
+      const settings = await getSettings();
+      if (settings && settings.targetLat && settings.targetLng && lat && lng) {
+        distance = calculateDistance(settings.targetLat, settings.targetLng, lat, lng);
+        if (distance !== null) {
+          isOk = distance <= 8;
+        }
       }
     }
 
     const attendance = {
       id: crypto.randomUUID(),
       studentId,
-      lat,
-      lng,
+      type: type || 'present', // 'present' or 'leave'
+      reason: reason || '',
+      lat: lat || null,
+      lng: lng || null,
       distance,
       isOk,
-      photo,
+      photo: photo || '',
       timestamp,
       createdAt: new Date().toISOString()
     };
@@ -60,13 +72,19 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const adminKey = searchParams.get('adminKey');
+    const studentId = searchParams.get('studentId');
 
     // Simple security check (use real env var checking in production)
-    if (adminKey !== 'admin2569') {
+    if (!studentId && adminKey !== 'admin2569') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const attendances = await getAttendances();
+    let attendances = await getAttendances();
+    
+    if (studentId) {
+      attendances = attendances.filter(a => a.studentId === studentId);
+    }
+    
     // Sort by most recent first
     attendances.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     

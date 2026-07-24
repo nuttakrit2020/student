@@ -1443,7 +1443,11 @@ export default function AdminPage() {
                           <td>{att.studentId}</td>
                           <td>{studentInfo ? studentInfo.name : 'ไม่ทราบชื่อ'}</td>
                           <td>
-                            {att.distance !== undefined && att.distance !== null ? (
+                            {att.type === 'leave' ? (
+                              <span style={{ color: '#b08d00', fontWeight: 600, fontSize: '0.9rem', background: '#fff9c4', padding: '4px 8px', borderRadius: '12px', display: 'inline-block' }}>
+                                🟡 ลา: {att.reason}
+                              </span>
+                            ) : att.distance !== undefined && att.distance !== null ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <span style={{ 
                                   color: att.isOk ? '#137333' : '#d93025', 
@@ -1468,9 +1472,13 @@ export default function AdminPage() {
                             )}
                           </td>
                           <td>
-                            <a href={att.photo} target="_blank" rel="noopener noreferrer">
-                              <img src={att.photo} alt="รูปถ่าย" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ddd' }} />
-                            </a>
+                            {att.type === 'leave' ? (
+                              <span style={{ color: '#888', fontStyle: 'italic', fontSize: '0.85rem' }}>ไม่มีรูป (ลา)</span>
+                            ) : (
+                              <a href={att.photo} target="_blank" rel="noopener noreferrer">
+                                <img src={att.photo} alt="รูปถ่าย" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #ddd' }} />
+                              </a>
+                            )}
                           </td>
                           <td>
                             <button 
@@ -1616,7 +1624,10 @@ export default function AdminPage() {
                                 scheduledCount++;
                                 if (att) {
                                   presentCount++;
-                                  if (att.isOk === false) {
+                                  if (att.type === 'leave') {
+                                    cellContent = '🟡';
+                                    cellStyle.background = '#fff9c4';
+                                  } else if (att.isOk === false) {
                                     cellContent = '\u26a0\ufe0f';
                                     cellStyle.background = '#fff3e0';
                                   } else {
@@ -1634,7 +1645,12 @@ export default function AdminPage() {
                                 cellStyle.borderRight = '2px solid #1a73e8';
                               }
 
-                              return <td key={i} style={cellStyle} title={att && att.isOk === false ? `ผิดจุด! ห่าง ${att.distance} ม.` : !isClassDay ? 'ไม่มีคาบเรียน' : ''}>{cellContent}</td>;
+                              let tooltip = '';
+                              if (att && att.type === 'leave') tooltip = `ลา: ${att.reason}`;
+                              else if (att && att.isOk === false) tooltip = `ผิดจุด! ห่าง ${att.distance} ม.`;
+                              else if (!isClassDay) tooltip = 'ไม่มีคาบเรียน';
+                              
+                              return <td key={i} style={cellStyle} title={tooltip}>{cellContent}</td>;
                             })}
                             <td style={{ textAlign: 'center', fontWeight: 600, fontFamily: 'var(--font-en)' }}>
                               {schedule ? (
@@ -1655,6 +1671,7 @@ export default function AdminPage() {
 
               <div style={{ display: 'flex', gap: '24px', marginTop: '16px', flexWrap: 'wrap', fontSize: '0.9rem' }}>
                 <span>{'\u2705'} = มาเรียน</span>
+                <span>🟡 = ลา</span>
                 <span>{'\u274c'} = ขาดเรียน</span>
                 <span>{'\u26a0\ufe0f'} = มาแต่ผิดจุด (นอกรัศมี 8 ม.)</span>
                 <span>{'\u2014'} = ไม่มีคาบเรียนวันนี้</span>
