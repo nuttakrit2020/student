@@ -610,6 +610,42 @@ export default function StudentPage() {
   const totalCount = assignments.length;
   const progressPercent = totalCount > 0 ? Math.round((submittedCount / totalCount) * 100) : 0;
 
+  // Compute attendance stats
+  let presentCount = 0;
+  let leaveCount = 0;
+  let absentCount = 0;
+
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
+  
+  const schedule = settings?.classSchedules ? settings.classSchedules[student?.room] : null;
+  const classDay = schedule ? schedule.day : null;
+
+  if (classDay !== null) {
+    let d = new Date(startOfSemester);
+    while (d <= todayDate) {
+      if (d.getDay() === classDay) {
+        const dateStr = d.toISOString().split('T')[0];
+        const att = attendances.find(a => {
+          const aDate = new Date(a.timestamp);
+          return a.timestamp.startsWith(dateStr) || aDate.toLocaleDateString('sv').startsWith(dateStr);
+        });
+
+        if (att) {
+          if (att.type === 'leave') {
+            leaveCount++;
+          } else {
+            presentCount++;
+          }
+        } else {
+          absentCount++;
+        }
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  }
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -692,6 +728,21 @@ export default function StudentPage() {
           <div className="stat-card">
             <div className="stat-value">{totalCount - submittedCount}</div>
             <div className="stat-label">ยังไม่ส่ง ❌</div>
+          </div>
+        </div>
+
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-value" style={{ color: '#34a853' }}>{presentCount}</div>
+            <div className="stat-label">มาเรียน</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value" style={{ color: '#fbbc04' }}>{leaveCount}</div>
+            <div className="stat-label">ลา</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value" style={{ color: '#ea4335' }}>{absentCount}</div>
+            <div className="stat-label">ขาด</div>
           </div>
         </div>
 
