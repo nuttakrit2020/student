@@ -379,6 +379,8 @@ export default function AdminPage() {
   const [editStudent, setEditStudent] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [filterRoom, setFilterRoom] = useState('');
+  const [filterAttRoom, setFilterAttRoom] = useState('');
+  const [filterAttDate, setFilterAttDate] = useState('today');
 
   // Drag to check states
   const [isDragging, setIsDragging] = useState(false);
@@ -1313,8 +1315,27 @@ export default function AdminPage() {
           );
         })()}
 
-        {activeTab === 'attendance' && (
-          <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
+        {activeTab === 'attendance' && (() => {
+          const rooms = data?.students ? [...new Set(data.students.map(s => s.room || '').filter(Boolean))].sort() : [];
+          
+          let filteredAttendances = [...attendances];
+          
+          // Date Filter
+          if (filterAttDate === 'today') {
+            const todayStr = new Date().toLocaleDateString('th-TH');
+            filteredAttendances = filteredAttendances.filter(att => new Date(att.timestamp).toLocaleDateString('th-TH') === todayStr);
+          }
+          
+          // Room Filter
+          if (filterAttRoom) {
+            filteredAttendances = filteredAttendances.filter(att => {
+              const student = data?.students?.find(s => s.id === att.studentId);
+              return student && student.room === filterAttRoom;
+            });
+          }
+
+          return (
+            <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
             <div className="card-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📍 ประวัติเช็คชื่อ</h2>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -1336,6 +1357,29 @@ export default function AdminPage() {
                 </button>
               </div>
             </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <select 
+                className="form-input" 
+                style={{ width: 'auto', minWidth: '150px', padding: '8px 12px' }}
+                value={filterAttDate}
+                onChange={(e) => setFilterAttDate(e.target.value)}
+              >
+                <option value="today">📅 เฉพาะวันนี้</option>
+                <option value="all">📅 ดูทั้งหมดทุกวัน</option>
+              </select>
+              <select 
+                className="form-input" 
+                style={{ width: 'auto', minWidth: '150px', padding: '8px 12px' }}
+                value={filterAttRoom}
+                onChange={(e) => setFilterAttRoom(e.target.value)}
+              >
+                <option value="">🏫 ดูทุกห้องเรียน</option>
+                {rooms.map(room => (
+                  <option key={room} value={room}>{room}</option>
+                ))}
+              </select>
+            </div>
             
             {targetLat && targetLng && (
               <div style={{ background: '#e6f4ea', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem', color: '#137333', border: '1px solid #ceead6' }}>
@@ -1349,10 +1393,10 @@ export default function AdminPage() {
               </div>
             )}
             
-            {attendances.length === 0 ? (
+            {filteredAttendances.length === 0 ? (
               <div className="empty-state">
                 <div className="icon">📭</div>
-                <p>ยังไม่มีประวัติการเช็คชื่อ</p>
+                <p>ไม่พบประวัติการเช็คชื่อตามที่กรอง</p>
               </div>
             ) : (
               <div className="table-responsive">
@@ -1360,6 +1404,7 @@ export default function AdminPage() {
                   <thead>
                     <tr>
                       <th>วัน/เวลา</th>
+                      <th>ห้องเรียน</th>
                       <th>รหัสนักเรียน</th>
                       <th>ชื่อนักเรียน</th>
                       <th>พิกัด (GPS)</th>
@@ -1368,11 +1413,12 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {attendances.map((att) => {
+                    {filteredAttendances.map((att) => {
                       const studentInfo = data?.students?.find(s => s.id === att.studentId);
                       return (
                         <tr key={att.id}>
                           <td>{new Date(att.timestamp).toLocaleString('th-TH')}</td>
+                          <td>{studentInfo ? studentInfo.room || '-' : '-'}</td>
                           <td>{att.studentId}</td>
                           <td>{studentInfo ? studentInfo.name : 'ไม่ทราบชื่อ'}</td>
                           <td>
@@ -1423,7 +1469,8 @@ export default function AdminPage() {
               </div>
             )}
           </div>
-        )}
+        )
+        })()}
 
         {activeTab === 'settings' && (
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
