@@ -1129,12 +1129,47 @@ export default function AdminPage() {
                       <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'midtermScore', 20, 'สอบกลางภาค')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">กลางภาค ✏️ (20)</th>
                       <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'finalScore', 20, 'สอบปลายภาค')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">ปลายภาค ✏️ (20)</th>
                       <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'behaviorScore', 10, 'จิตพิสัย')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">จิตพิสัย ✏️ (10)</th>
+                      <th style={{ background: '#e6f4ea', color: '#137333' }}>มาเรียน</th>
+                      <th style={{ background: '#fef7e0', color: '#b06000' }}>ลา</th>
+                      <th style={{ background: '#fce8e6', color: '#c5221f' }}>ขาด</th>
                       <th>รวม (100)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {summaryData.map((row) => {
                       const submittedCount = Object.values(row.submissions).filter((v) => v.submitted).length;
+                      let presentCount = 0;
+                      let leaveCount = 0;
+                      let absentCount = 0;
+                      const todayDate = new Date();
+                      todayDate.setHours(0, 0, 0, 0);
+                      const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
+                      
+                      const roomKey = getRoomKey(row.student?.room);
+                      const schedule = classSchedules[roomKey];
+                      const classDay = schedule ? schedule.day : null;
+
+                      if (classDay !== null) {
+                        let d = new Date(startOfSemester);
+                        while (d <= todayDate) {
+                          if (d.getDay() === classDay) {
+                            const dateStr = d.toISOString().split('T')[0];
+                            const att = attendances.find(a => {
+                              if (a.studentId !== row.student.id) return false;
+                              const aDate = new Date(a.timestamp);
+                              return a.timestamp.startsWith(dateStr) || aDate.toLocaleDateString('sv').startsWith(dateStr);
+                            });
+                            if (att) {
+                              if (att.type === 'leave') leaveCount++;
+                              else presentCount++;
+                            } else {
+                              absentCount++;
+                            }
+                          }
+                          d.setDate(d.getDate() + 1);
+                        }
+                      }
+                      
                       return (
                         <tr key={row.student.id}>
                           <td style={{ fontFamily: 'var(--font-en)', fontWeight: 600 }}>{row.student.id}</td>
@@ -1207,6 +1242,9 @@ export default function AdminPage() {
                               style={{ width: '45px', padding: '2px 4px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                             />
                           </td>
+                          <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#137333' }}>{presentCount}</td>
+                          <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#b06000' }}>{leaveCount}</td>
+                          <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#c5221f' }}>{absentCount}</td>
                           <td style={{
                             fontFamily: 'var(--font-en)',
                             fontWeight: 700,
