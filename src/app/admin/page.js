@@ -383,6 +383,16 @@ export default function AdminPage() {
   const [filterAttDate, setFilterAttDate] = useState('today');
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [calendarRoom, setCalendarRoom] = useState('');
+  const [classSchedules, setClassSchedules] = useState({
+    '3/1': { day: 4, start: '13:30', end: '14:20', label: 'พฤหัสบดี 13:30-14:20' },
+    '3/2': { day: 5, start: '11:50', end: '12:40', label: 'ศุกร์ 11:50-12:40' },
+    '3/3': { day: 5, start: '08:30', end: '09:20', label: 'ศุกร์ 08:30-09:20' },
+    '3/4': { day: 5, start: '12:40', end: '13:30', label: 'ศุกร์ 12:40-13:30' },
+    '3/5': { day: 1, start: '13:30', end: '14:20', label: 'จันทร์ 13:30-14:20' },
+    '3/6': { day: 3, start: '08:30', end: '09:20', label: 'พุธ 08:30-09:20' },
+    '3/7': { day: 1, start: '14:20', end: '15:10', label: 'จันทร์ 14:20-15:10' },
+    '3/8': { day: 5, start: '10:10', end: '11:00', label: 'ศุกร์ 10:10-11:00' },
+  });
 
   // Drag to check states
   const [isDragging, setIsDragging] = useState(false);
@@ -419,6 +429,9 @@ export default function AdminPage() {
           setTargetLng(result.settings.targetLng || null);
           setQrCode(result.settings.qrCode || '');
           setAdminAvatarUrl(result.settings.adminAvatarUrl || '');
+          if (result.settings.classSchedules) {
+            setClassSchedules(result.settings.classSchedules);
+          }
         }
       } else {
         router.push('/');
@@ -1490,7 +1503,8 @@ export default function AdminPage() {
           const startOfWeek = new Date(now);
           startOfWeek.setDate(now.getDate() - now.getDay() + 1 + (calendarWeekOffset * 7)); // Monday
           const weekDays = [];
-          const dayNames = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.'];
+          const dayNames = ['\u0e08.', '\u0e2d.', '\u0e1e.', '\u0e1e\u0e24.', '\u0e28.'];
+          const dayIndices = [1, 2, 3, 4, 5]; // Mon=1, Tue=2, ...Fri=5
           for (let i = 0; i < 5; i++) {
             const d = new Date(startOfWeek);
             d.setDate(startOfWeek.getDate() + i);
@@ -1499,7 +1513,7 @@ export default function AdminPage() {
 
           const weekLabel = `${weekDays[0].toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} - ${weekDays[4].toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
-          // Build attendance lookup: studentId -> Set of date strings
+          // Build attendance lookup
           const attMap = {};
           attendances.forEach(att => {
             const dateStr = new Date(att.timestamp).toLocaleDateString('th-TH');
@@ -1509,22 +1523,24 @@ export default function AdminPage() {
 
           const todayStr = now.toLocaleDateString('th-TH');
 
-          // Count stats
-          let totalPresent = 0;
-          let totalAbsent = 0;
+          // Helper: get room key from student.room (e.g., "ม.3/1" -> "3/1", or "3/1" -> "3/1")
+          const getRoomKey = (room) => {
+            if (!room) return '';
+            return room.replace(/^ม\.?\s*/, '').trim();
+          };
 
           return (
             <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
               <div className="card-header" style={{ marginBottom: '16px' }}>
-                <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📅 ตารางเช็คชื่อรายสัปดาห์</h2>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{'\ud83d\udcc5'} ตารางเช็คชื่อรายสัปดาห์</h2>
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o - 1)} style={{ padding: '8px 12px' }}>◀ สัปดาห์ก่อน</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o - 1)} style={{ padding: '8px 12px' }}>{'\u25c0'} สัปดาห์ก่อน</button>
                 <span style={{ fontWeight: 600, fontSize: '1rem', minWidth: '200px', textAlign: 'center' }}>{weekLabel}</span>
-                <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o + 1)} style={{ padding: '8px 12px' }}>สัปดาห์ถัดไป ▶</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o + 1)} style={{ padding: '8px 12px' }}>สัปดาห์ถัดไป {'\u25b6'}</button>
                 {calendarWeekOffset !== 0 && (
-                  <button className="btn btn-primary btn-sm" onClick={() => setCalendarWeekOffset(0)} style={{ padding: '8px 12px' }}>📍 สัปดาห์นี้</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => setCalendarWeekOffset(0)} style={{ padding: '8px 12px' }}>{'\ud83d\udccd'} สัปดาห์นี้</button>
                 )}
                 <select
                   className="form-input"
@@ -1532,16 +1548,16 @@ export default function AdminPage() {
                   value={calendarRoom}
                   onChange={(e) => setCalendarRoom(e.target.value)}
                 >
-                  <option value="">🏫 ดูทุกห้องเรียน</option>
+                  <option value="">{'\ud83c\udfeb'} ดูทุกห้องเรียน</option>
                   {rooms.map(room => (
-                    <option key={room} value={room}>{room}</option>
+                    <option key={room} value={room}>{room} {classSchedules[getRoomKey(room)] ? `(${classSchedules[getRoomKey(room)].label})` : ''}</option>
                   ))}
                 </select>
               </div>
 
               {filteredStudents.length === 0 ? (
                 <div className="empty-state">
-                  <div className="icon">📭</div>
+                  <div className="icon">{'\ud83d\udced'}</div>
                   <p>ไม่พบนักเรียนตามที่กรอง</p>
                 </div>
               ) : (
@@ -1561,12 +1577,16 @@ export default function AdminPage() {
                             </th>
                           );
                         })}
-                        <th style={{ textAlign: 'center', minWidth: '50px' }}>รวม</th>
+                        <th style={{ textAlign: 'center', minWidth: '50px' }}>สถานะ</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredStudents.map((student, idx) => {
+                        const roomKey = getRoomKey(student.room);
+                        const schedule = classSchedules[roomKey];
                         let presentCount = 0;
+                        let scheduledCount = 0;
+
                         return (
                           <tr key={student.id}>
                             <td style={{ position: 'sticky', left: 0, background: 'var(--bg-primary)', zIndex: 1, fontFamily: 'var(--font-en)' }}>{idx + 1}</td>
@@ -1576,43 +1596,54 @@ export default function AdminPage() {
                               const dateStr = d.toLocaleDateString('th-TH');
                               const isFuture = d > now;
                               const isToday = dateStr === todayStr;
+                              const jsDay = dayIndices[i]; // 1=Mon...5=Fri
+                              const isClassDay = schedule ? schedule.day === jsDay : true;
                               const att = attMap[student.id] && attMap[student.id][dateStr];
 
                               let cellContent = '';
                               let cellStyle = { textAlign: 'center', fontSize: '1.2rem' };
 
-                              if (isFuture) {
-                                cellContent = '―';
-                                cellStyle.color = '#ccc';
-                              } else if (att) {
-                                presentCount++;
-                                totalPresent++;
-                                if (att.isOk === false) {
-                                  cellContent = '⚠️';
-                                  cellStyle.background = '#fff3e0';
-                                  cellStyle.cursor = 'pointer';
-                                  cellStyle.title = `ผิดจุด! ห่าง ${att.distance} ม.`;
-                                } else {
-                                  cellContent = '✅';
-                                  cellStyle.background = '#e6f4ea';
-                                }
+                              if (!isClassDay) {
+                                // Not a scheduled class day for this room
+                                cellContent = '\u2014';
+                                cellStyle.color = '#ddd';
+                                cellStyle.background = '#fafafa';
+                              } else if (isFuture) {
+                                scheduledCount++;
+                                cellContent = '\u23f3';
+                                cellStyle.color = '#bbb';
                               } else {
-                                totalAbsent++;
-                                cellContent = '❌';
-                                cellStyle.background = isToday ? '#fce8e6' : '#fce8e6';
+                                scheduledCount++;
+                                if (att) {
+                                  presentCount++;
+                                  if (att.isOk === false) {
+                                    cellContent = '\u26a0\ufe0f';
+                                    cellStyle.background = '#fff3e0';
+                                  } else {
+                                    cellContent = '\u2705';
+                                    cellStyle.background = '#e6f4ea';
+                                  }
+                                } else {
+                                  cellContent = '\u274c';
+                                  cellStyle.background = '#fce8e6';
+                                }
                               }
 
-                              if (isToday) {
+                              if (isToday && isClassDay) {
                                 cellStyle.borderLeft = '2px solid #1a73e8';
                                 cellStyle.borderRight = '2px solid #1a73e8';
                               }
 
-                              return <td key={i} style={cellStyle} title={att && att.isOk === false ? `ผิดจุด! ห่าง ${att.distance} ม.` : ''}>{cellContent}</td>;
+                              return <td key={i} style={cellStyle} title={att && att.isOk === false ? `ผิดจุด! ห่าง ${att.distance} ม.` : !isClassDay ? 'ไม่มีคาบเรียน' : ''}>{cellContent}</td>;
                             })}
                             <td style={{ textAlign: 'center', fontWeight: 600, fontFamily: 'var(--font-en)' }}>
-                              <span style={{ color: presentCount >= 5 ? '#137333' : presentCount >= 3 ? '#b06000' : '#d93025' }}>
-                                {presentCount}/5
-                              </span>
+                              {schedule ? (
+                                <span style={{ color: presentCount >= 1 ? '#137333' : '#d93025' }}>
+                                  {presentCount === 1 ? '\u2705 \u0e21\u0e32' : '\u274c \u0e02\u0e32\u0e14'}
+                                </span>
+                              ) : (
+                                <span style={{ color: '#999' }}>-</span>
+                              )}
                             </td>
                           </tr>
                         );
@@ -1623,10 +1654,23 @@ export default function AdminPage() {
               )}
 
               <div style={{ display: 'flex', gap: '24px', marginTop: '16px', flexWrap: 'wrap', fontSize: '0.9rem' }}>
-                <span>✅ = มาเรียน</span>
-                <span>❌ = ขาดเรียน</span>
-                <span>⚠️ = มาแต่ผิดจุด (นอกรัศมี 8 ม.)</span>
-                <span>― = ยังไม่ถึงวันนี้</span>
+                <span>{'\u2705'} = มาเรียน</span>
+                <span>{'\u274c'} = ขาดเรียน</span>
+                <span>{'\u26a0\ufe0f'} = มาแต่ผิดจุด (นอกรัศมี 8 ม.)</span>
+                <span>{'\u2014'} = ไม่มีคาบเรียนวันนี้</span>
+                <span>{'\u23f3'} = ยังไม่ถึงวัน</span>
+              </div>
+
+              {/* Schedule reference */}
+              <div style={{ marginTop: '16px', padding: '12px', background: '#f0f4f8', borderRadius: '8px', fontSize: '0.85rem' }}>
+                <strong>{'\ud83d\udcda'} ตารางสอนที่ตั้งค่าไว้:</strong>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                  {Object.entries(classSchedules).map(([room, sched]) => (
+                    <span key={room} style={{ background: 'white', padding: '4px 10px', borderRadius: '16px', border: '1px solid #ddd' }}>
+                      {room}: {sched.label}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           );

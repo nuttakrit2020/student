@@ -29,6 +29,7 @@ export async function POST(request) {
     if (adminAvatarUrl !== undefined) updates.adminAvatarUrl = adminAvatarUrl;
     if (targetLat !== undefined) updates.targetLat = targetLat;
     if (targetLng !== undefined) updates.targetLng = targetLng;
+    if (body.classSchedules !== undefined) updates.classSchedules = body.classSchedules;
 
     const newSettings = await updateSettings(updates);
     return NextResponse.json({ settings: newSettings });
