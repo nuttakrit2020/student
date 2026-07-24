@@ -1661,15 +1661,55 @@ export default function AdminPage() {
                 <span>{'\u23f3'} = ยังไม่ถึงวัน</span>
               </div>
 
-              {/* Schedule reference */}
-              <div style={{ marginTop: '16px', padding: '12px', background: '#f0f4f8', borderRadius: '8px', fontSize: '0.85rem' }}>
-                <strong>{'\ud83d\udcda'} ตารางสอนที่ตั้งค่าไว้:</strong>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-                  {Object.entries(classSchedules).map(([room, sched]) => (
-                    <span key={room} style={{ background: 'white', padding: '4px 10px', borderRadius: '16px', border: '1px solid #ddd' }}>
-                      {room}: {sched.label}
-                    </span>
-                  ))}
+              {/* Cute Schedule reference */}
+              <div style={{ marginTop: '24px', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '12px' }}>{'\ud83c\udfeb'} ตารางสอน</h3>
+                <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #ddd', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f8f9fa' }}>
+                        <th style={{ padding: '10px 8px', border: '1px solid #ddd', minWidth: '80px' }}>วัน / เวลา</th>
+                        {['08.30-09.20', '09.20-10.10', '10.10-11.00', '11.00-11.50', '11.50-12.40', '12.40-13.30', '13.30-14.20', '14.20-15.10'].map(t => (
+                          <th key={t} style={{ padding: '10px 8px', border: '1px solid #ddd', minWidth: '80px', fontWeight: 500, color: '#555' }}>{t}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { id: 1, name: 'จันทร์', color: '#fff2cc', border: '#d6b656', text: '#b48c17' },
+                        { id: 2, name: 'อังคาร', color: '#f8cecc', border: '#b85450', text: '#a23733' },
+                        { id: 3, name: 'พุธ', color: '#d5e8d4', border: '#82b366', text: '#5b8e3e' },
+                        { id: 4, name: 'พฤหัสบดี', color: '#ffe6cc', border: '#d79b00', text: '#b38100' },
+                        { id: 5, name: 'ศุกร์', color: '#dae8fc', border: '#6c8ebf', text: '#4a70a8' },
+                      ].map(day => (
+                        <tr key={day.id}>
+                          <td style={{ padding: '8px', border: '1px solid #ddd', background: day.color, fontWeight: 600, borderLeft: `4px solid ${day.border}`, color: day.text }}>
+                            {day.name}
+                          </td>
+                          {['08:30', '09:20', '10:10', '11:00', '11:50', '12:40', '13:30', '14:20'].map(startTime => {
+                            let roomFound = null;
+                            Object.entries(classSchedules).forEach(([room, sched]) => {
+                              if (sched.day === day.id && sched.start === startTime) {
+                                roomFound = room;
+                              }
+                            });
+                            
+                            return (
+                              <td key={startTime} style={{ padding: '8px', border: '1px solid #ddd', background: roomFound ? day.color : '#fff' }}>
+                                {roomFound ? (
+                                  <div style={{ background: '#fff', padding: '4px 10px', borderRadius: '16px', fontWeight: 600, border: `1.5px solid ${day.border}`, color: day.text, display: 'inline-block', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                                    ม.{roomFound}
+                                  </div>
+                                ) : (
+                                  <span style={{ color: '#f0f0f0' }}>-</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
