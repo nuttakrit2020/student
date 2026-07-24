@@ -32,7 +32,7 @@ export async function POST(request) {
     if (settings && settings.targetLat && settings.targetLng) {
       distance = calculateDistance(settings.targetLat, settings.targetLng, lat, lng);
       if (distance !== null) {
-        isOk = distance <= 15;
+        isOk = distance <= 8;
       }
     }
 
