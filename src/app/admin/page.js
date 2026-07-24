@@ -1605,10 +1605,10 @@ export default function AdminPage() {
             return room.replace(/^ม\.?\s*/, '').trim();
           };
 
-          const pendingLeaves = data.attendances.filter(a => a.type === 'leave' && a.status === 'pending');
+          const pendingLeaves = (data?.attendances || []).filter(a => a.type === 'leave' && a.status === 'pending');
           const pendingLeavesWithStudent = pendingLeaves.map(a => ({
              ...a,
-             student: data.students.find(s => s.id === a.studentId)
+             student: (data?.students || []).find(s => s.id === a.studentId)
           })).filter(a => a.student);
 
           return (
