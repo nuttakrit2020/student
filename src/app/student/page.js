@@ -442,13 +442,26 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
         {days.map((date, index) => {
           if (!date) return <div key={`empty-${index}`} />;
           
-          const dateStr = date.toLocaleDateString('sv');
-          const isToday = dateStr === today.toLocaleDateString('sv');
+          const cy = date.getFullYear();
+          const cm = String(date.getMonth() + 1).padStart(2, '0');
+          const cd = String(date.getDate()).padStart(2, '0');
+          const dateStr = `${cy}-${cm}-${cd}`;
+          
+          const ty = today.getFullYear();
+          const tm = String(today.getMonth() + 1).padStart(2, '0');
+          const td = String(today.getDate()).padStart(2, '0');
+          const todayStr = `${ty}-${tm}-${td}`;
+          
+          const isToday = dateStr === todayStr;
           const isClassDay = classDay !== null && date.getDay() === classDay;
           
           const att = attendances.find(a => {
             const aDate = new Date(a.timestamp);
-            return a.timestamp.startsWith(dateStr) || aDate.toLocaleDateString('sv').startsWith(dateStr);
+            const ay = aDate.getFullYear();
+            const am = String(aDate.getMonth() + 1).padStart(2, '0');
+            const ad = String(aDate.getDate()).padStart(2, '0');
+            const aDateStr = `${ay}-${am}-${ad}`;
+            return a.timestamp.startsWith(dateStr) || aDateStr === dateStr;
           });
           
           let circleColor = 'transparent';
@@ -470,7 +483,7 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
                    circleColor = '#34a853';
                    textColor = '#fff';
                 }
-             } else if (date < today) {
+             } else if (date < today && date >= new Date('2026-05-18T00:00:00+07:00')) {
                 circleColor = '#ea4335';
                 textColor = '#fff';
              } else if (isToday) {
@@ -637,10 +650,17 @@ export default function StudentPage() {
     let d = new Date(startOfSemester);
     while (d <= todayDate) {
       if (d.getDay() === classDay) {
-        const dateStr = d.toLocaleDateString('sv');
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${day}`;
         const att = attendances.find(a => {
           const aDate = new Date(a.timestamp);
-          return a.timestamp.startsWith(dateStr) || aDate.toLocaleDateString('sv').startsWith(dateStr);
+          const ay = aDate.getFullYear();
+          const am = String(aDate.getMonth() + 1).padStart(2, '0');
+          const ad = String(aDate.getDate()).padStart(2, '0');
+          const aDateStr = `${ay}-${am}-${ad}`;
+          return a.timestamp.startsWith(dateStr) || aDateStr === dateStr;
         });
 
         if (att) {
