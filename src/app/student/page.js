@@ -537,6 +537,8 @@ export default function StudentPage() {
   const [loading, setLoading] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [showLocationWarningModal, setShowLocationWarningModal] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [isLineBrowser, setIsLineBrowser] = useState(false);
@@ -616,6 +618,23 @@ export default function StudentPage() {
   const handleLogout = () => {
     sessionStorage.removeItem('student');
     router.push('/');
+  };
+
+  const handleCheckInClick = () => {
+    const hideWarning = localStorage.getItem('hideLocationWarning');
+    if (hideWarning === 'true') {
+      setShowAttendanceModal(true);
+    } else {
+      setShowLocationWarningModal(true);
+    }
+  };
+
+  const handleProceedCheckIn = () => {
+    if (dontShowAgain) {
+      localStorage.setItem('hideLocationWarning', 'true');
+    }
+    setShowLocationWarningModal(false);
+    setShowAttendanceModal(true);
   };
 
   const submittedCount = assignments.filter((a) => getSubmissionForAssignment(a.id)).length;
@@ -730,7 +749,7 @@ export default function StudentPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => setShowAttendanceModal(true)}>
+              <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={handleCheckInClick}>
                 📍 เช็คชื่อ
               </button>
               <button className="btn btn-secondary btn-sm" style={{ flex: 1, background: '#fff3cd', color: '#856404', borderColor: '#ffeeba' }} onClick={() => setShowLeaveModal(true)}>
@@ -940,6 +959,39 @@ export default function StudentPage() {
               fetchData(student);
             }}
           />
+        )}
+
+        {/* Location Warning Modal */}
+        {showLocationWarningModal && (
+          <div className="modal-overlay">
+            <div className="modal" style={{ textAlign: 'center', maxWidth: '400px' }}>
+              <h3 style={{ color: '#ea4335', marginBottom: '16px' }}>⚠️ คำเตือน</h3>
+              <p style={{ marginBottom: '16px', lineHeight: '1.5' }}>
+                กรุณากดเช็คชื่อ <b>ภายในห้องเรียนหรือสถานที่เรียนเท่านั้น</b>
+                <br />
+                ระบบจะตรวจสอบพิกัด GPS ของคุณ หากอยู่ไม่ตรงจุด จะถือว่าการเช็คชื่อไม่สมบูรณ์
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
+                <input 
+                  type="checkbox" 
+                  id="dontShowAgain" 
+                  checked={dontShowAgain}
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                />
+                <label htmlFor="dontShowAgain" style={{ fontSize: '0.9rem', cursor: 'pointer' }}>
+                  รับทราบและไม่ต้องแสดงข้อความนี้อีก
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                <button className="btn btn-primary" onClick={handleProceedCheckIn}>
+                  เข้าใจแล้ว ดำเนินการต่อ
+                </button>
+                <button className="btn btn-secondary" onClick={() => setShowLocationWarningModal(false)}>
+                  ยกเลิก
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
