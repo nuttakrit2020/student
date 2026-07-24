@@ -406,10 +406,9 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
   
   const daysInMonth = lastDay.getDate();
   const startingDayOfWeek = firstDay.getDay();
-  
-  const schedule = classSchedules ? classSchedules[studentRoom] : null;
+  const getRoomKey = (r) => r ? '3/' + r.replace(/^ม\.?\s*/, '').replace(/^3\//, '').trim() : '';
+  const schedule = classSchedules ? classSchedules[getRoomKey(studentRoom)] : null;
   const classDay = schedule ? schedule.day : null;
-
   const days = [];
   for (let i = 0; i < startingDayOfWeek; i++) {
     days.push(null);
@@ -618,10 +617,22 @@ export default function StudentPage() {
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
   const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
+  const getRoomKey = (r) => r ? '3/' + r.replace(/^ม\.?\s*/, '').replace(/^3\//, '').trim() : '';
+  const roomKey = getRoomKey(student?.room);
   
-  const schedule = settings?.classSchedules ? settings.classSchedules[student?.room] : null;
+  const classSchedules = {
+    '3/1': { day: 4 },
+    '3/2': { day: 5 },
+    '3/3': { day: 5 },
+    '3/4': { day: 5 },
+    '3/5': { day: 1 },
+    '3/6': { day: 3 },
+    '3/7': { day: 1 },
+    '3/8': { day: 5 }
+  };
+  
+  const schedule = classSchedules[roomKey];
   const classDay = schedule ? schedule.day : null;
-
   if (classDay !== null) {
     let d = new Date(startOfSemester);
     while (d <= todayDate) {
@@ -713,7 +724,16 @@ export default function StudentPage() {
         </div>
 
         {/* Student Calendar */}
-        <StudentCalendar attendances={attendances} classSchedules={settings.classSchedules} studentRoom={student?.room} />
+        <StudentCalendar attendances={attendances} classSchedules={{
+          '3/1': { day: 4, label: 'พฤหัสบดี' },
+          '3/2': { day: 5, label: 'ศุกร์' },
+          '3/3': { day: 5, label: 'ศุกร์' },
+          '3/4': { day: 5, label: 'ศุกร์' },
+          '3/5': { day: 1, label: 'จันทร์' },
+          '3/6': { day: 3, label: 'พุธ' },
+          '3/7': { day: 1, label: 'จันทร์' },
+          '3/8': { day: 5, label: 'ศุกร์' }
+        }} studentRoom={student?.room} />
 
         {/* Stats */}
         <div className="stats-grid">
