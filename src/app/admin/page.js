@@ -756,6 +756,29 @@ export default function AdminPage() {
     }
   };
 
+  const handleClearTargetLocation = async () => {
+    if (!confirm('ต้องการยกเลิกการตั้งค่าพิกัดห้องเรียนใช่หรือไม่?\n(ระบบจะหยุดการคำนวณระยะทางชั่วคราว)')) return;
+    setSavingSettings(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminKey, targetLat: null, targetLng: null })
+      });
+      if (res.ok) {
+        setTargetLat(null);
+        setTargetLng(null);
+        addToast('ยกเลิกพิกัดห้องเรียนสำเร็จ');
+      } else {
+        addToast('ไม่สามารถยกเลิกพิกัดได้', 'error');
+      }
+    } catch (err) {
+      addToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const handleSetTargetLocation = () => {
     if (!navigator.geolocation) {
       addToast('เบราว์เซอร์ของคุณไม่รองรับ GPS', 'error');
@@ -1294,13 +1317,24 @@ export default function AdminPage() {
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
             <div className="card-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📍 ประวัติเช็คชื่อ</h2>
-              <button 
-                className="btn btn-primary btn-sm" 
-                onClick={handleSetTargetLocation}
-                disabled={savingSettings}
-              >
-                {savingSettings ? 'กำลังค้นหา...' : '📍 ดึงพิกัดปัจจุบันเป็นห้องเรียน'}
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {targetLat && targetLng && (
+                  <button 
+                    className="btn btn-secondary btn-sm" 
+                    onClick={handleClearTargetLocation}
+                    disabled={savingSettings}
+                  >
+                    ❌ ล้างพิกัด
+                  </button>
+                )}
+                <button 
+                  className="btn btn-primary btn-sm" 
+                  onClick={handleSetTargetLocation}
+                  disabled={savingSettings}
+                >
+                  {savingSettings ? 'กำลังประมวลผล...' : '📍 ดึงพิกัดปัจจุบันเป็นห้องเรียน'}
+                </button>
+              </div>
             </div>
             
             {targetLat && targetLng && (
