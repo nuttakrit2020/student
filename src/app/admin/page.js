@@ -381,6 +381,8 @@ export default function AdminPage() {
   const [filterRoom, setFilterRoom] = useState('');
   const [filterAttRoom, setFilterAttRoom] = useState('');
   const [filterAttDate, setFilterAttDate] = useState('today');
+  const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
+  const [calendarRoom, setCalendarRoom] = useState('');
 
   // Drag to check states
   const [isDragging, setIsDragging] = useState(false);
@@ -1001,6 +1003,12 @@ export default function AdminPage() {
             📍 ประวัติเช็คชื่อ
           </button>
           <button
+            className={`nav-btn ${activeTab === 'calendar' ? 'active' : ''}`}
+            onClick={() => setActiveTab('calendar')}
+          >
+            📅 ตารางรายสัปดาห์
+          </button>
+          <button
             className={`nav-btn ${activeTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveTab('settings')}
           >
@@ -1470,6 +1478,158 @@ export default function AdminPage() {
             )}
           </div>
         )
+        })()}
+
+        {activeTab === 'calendar' && (() => {
+          const rooms = data?.students ? [...new Set(data.students.map(s => s.room || '').filter(Boolean))].sort() : [];
+          const students = data?.students || [];
+          const filteredStudents = calendarRoom ? students.filter(s => s.room === calendarRoom) : students;
+
+          // Calculate week dates
+          const now = new Date();
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay() + 1 + (calendarWeekOffset * 7)); // Monday
+          const weekDays = [];
+          const dayNames = ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.'];
+          for (let i = 0; i < 5; i++) {
+            const d = new Date(startOfWeek);
+            d.setDate(startOfWeek.getDate() + i);
+            weekDays.push(d);
+          }
+
+          const weekLabel = `${weekDays[0].toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} - ${weekDays[4].toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+
+          // Build attendance lookup: studentId -> Set of date strings
+          const attMap = {};
+          attendances.forEach(att => {
+            const dateStr = new Date(att.timestamp).toLocaleDateString('th-TH');
+            if (!attMap[att.studentId]) attMap[att.studentId] = {};
+            attMap[att.studentId][dateStr] = att;
+          });
+
+          const todayStr = now.toLocaleDateString('th-TH');
+
+          // Count stats
+          let totalPresent = 0;
+          let totalAbsent = 0;
+
+          return (
+            <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
+              <div className="card-header" style={{ marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📅 ตารางเช็คชื่อรายสัปดาห์</h2>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o - 1)} style={{ padding: '8px 12px' }}>◀ สัปดาห์ก่อน</button>
+                <span style={{ fontWeight: 600, fontSize: '1rem', minWidth: '200px', textAlign: 'center' }}>{weekLabel}</span>
+                <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o + 1)} style={{ padding: '8px 12px' }}>สัปดาห์ถัดไป ▶</button>
+                {calendarWeekOffset !== 0 && (
+                  <button className="btn btn-primary btn-sm" onClick={() => setCalendarWeekOffset(0)} style={{ padding: '8px 12px' }}>📍 สัปดาห์นี้</button>
+                )}
+                <select
+                  className="form-input"
+                  style={{ width: 'auto', minWidth: '150px', padding: '8px 12px' }}
+                  value={calendarRoom}
+                  onChange={(e) => setCalendarRoom(e.target.value)}
+                >
+                  <option value="">🏫 ดูทุกห้องเรียน</option>
+                  {rooms.map(room => (
+                    <option key={room} value={room}>{room}</option>
+                  ))}
+                </select>
+              </div>
+
+              {filteredStudents.length === 0 ? (
+                <div className="empty-state">
+                  <div className="icon">📭</div>
+                  <p>ไม่พบนักเรียนตามที่กรอง</p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th style={{ position: 'sticky', left: 0, background: 'var(--bg-primary)', zIndex: 2, minWidth: '40px' }}>#</th>
+                        <th style={{ position: 'sticky', left: '40px', background: 'var(--bg-primary)', zIndex: 2, minWidth: '120px' }}>ชื่อนักเรียน</th>
+                        <th style={{ position: 'sticky', left: '160px', background: 'var(--bg-primary)', zIndex: 2, minWidth: '60px' }}>ห้อง</th>
+                        {weekDays.map((d, i) => {
+                          const isToday = d.toLocaleDateString('th-TH') === todayStr;
+                          return (
+                            <th key={i} style={{ textAlign: 'center', minWidth: '70px', background: isToday ? '#e8f0fe' : undefined, borderBottom: isToday ? '3px solid #1a73e8' : undefined }}>
+                              <div>{dayNames[i]}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{d.getDate()}/{d.getMonth()+1}</div>
+                            </th>
+                          );
+                        })}
+                        <th style={{ textAlign: 'center', minWidth: '50px' }}>รวม</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredStudents.map((student, idx) => {
+                        let presentCount = 0;
+                        return (
+                          <tr key={student.id}>
+                            <td style={{ position: 'sticky', left: 0, background: 'var(--bg-primary)', zIndex: 1, fontFamily: 'var(--font-en)' }}>{idx + 1}</td>
+                            <td style={{ position: 'sticky', left: '40px', background: 'var(--bg-primary)', zIndex: 1, whiteSpace: 'nowrap' }}>{student.nickname || student.name}</td>
+                            <td style={{ position: 'sticky', left: '160px', background: 'var(--bg-primary)', zIndex: 1, fontSize: '0.8rem' }}>{student.room || '-'}</td>
+                            {weekDays.map((d, i) => {
+                              const dateStr = d.toLocaleDateString('th-TH');
+                              const isFuture = d > now;
+                              const isToday = dateStr === todayStr;
+                              const att = attMap[student.id] && attMap[student.id][dateStr];
+
+                              let cellContent = '';
+                              let cellStyle = { textAlign: 'center', fontSize: '1.2rem' };
+
+                              if (isFuture) {
+                                cellContent = '―';
+                                cellStyle.color = '#ccc';
+                              } else if (att) {
+                                presentCount++;
+                                totalPresent++;
+                                if (att.isOk === false) {
+                                  cellContent = '⚠️';
+                                  cellStyle.background = '#fff3e0';
+                                  cellStyle.cursor = 'pointer';
+                                  cellStyle.title = `ผิดจุด! ห่าง ${att.distance} ม.`;
+                                } else {
+                                  cellContent = '✅';
+                                  cellStyle.background = '#e6f4ea';
+                                }
+                              } else {
+                                totalAbsent++;
+                                cellContent = '❌';
+                                cellStyle.background = isToday ? '#fce8e6' : '#fce8e6';
+                              }
+
+                              if (isToday) {
+                                cellStyle.borderLeft = '2px solid #1a73e8';
+                                cellStyle.borderRight = '2px solid #1a73e8';
+                              }
+
+                              return <td key={i} style={cellStyle} title={att && att.isOk === false ? `ผิดจุด! ห่าง ${att.distance} ม.` : ''}>{cellContent}</td>;
+                            })}
+                            <td style={{ textAlign: 'center', fontWeight: 600, fontFamily: 'var(--font-en)' }}>
+                              <span style={{ color: presentCount >= 5 ? '#137333' : presentCount >= 3 ? '#b06000' : '#d93025' }}>
+                                {presentCount}/5
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '24px', marginTop: '16px', flexWrap: 'wrap', fontSize: '0.9rem' }}>
+                <span>✅ = มาเรียน</span>
+                <span>❌ = ขาดเรียน</span>
+                <span>⚠️ = มาแต่ผิดจุด (นอกรัศมี 8 ม.)</span>
+                <span>― = ยังไม่ถึงวันนี้</span>
+              </div>
+            </div>
+          );
         })()}
 
         {activeTab === 'settings' && (
