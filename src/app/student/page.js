@@ -112,10 +112,11 @@ function EditProfileModal({ student, onClose, onSuccess }) {
 
 const CAMERA_FILTERS = [
   { name: 'ปกติ', value: 'none' },
-  { name: '✨ หน้าใส', value: 'brightness(1.15) contrast(1.1) saturate(1.2)' },
-  { name: '🌸 เกาหลี', value: 'brightness(1.1) sepia(0.2) hue-rotate(-10deg) saturate(1.3)' },
+  { name: '🌟 ออร่าผิวขาว', value: 'brightness(1.25) contrast(0.9) saturate(1.05)' },
+  { name: '✨ หน้าเนียน', value: 'blur(1px) brightness(1.15) contrast(0.95)' },
+  { name: '🌸 แก้มอมชมพู', value: 'brightness(1.1) sepia(0.2) hue-rotate(-20deg) saturate(1.2)' },
+  { name: '🔥 สายฝอ', value: 'sepia(0.3) saturate(1.4) contrast(1.1) brightness(0.95)' },
   { name: '🎞️ ฟิล์ม', value: 'sepia(0.4) contrast(1.2) brightness(0.9) saturate(1.2)' },
-  { name: '🐼 ขาวดำ', value: 'grayscale(100%) contrast(1.2)' },
   { name: '👽 มนุษย์ต่างดาว', value: 'saturate(3) hue-rotate(90deg)' },
 ];
 
