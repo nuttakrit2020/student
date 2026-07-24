@@ -110,8 +110,18 @@ function EditProfileModal({ student, onClose, onSuccess }) {
   );
 }
 
+const CAMERA_FILTERS = [
+  { name: 'ปกติ', value: 'none' },
+  { name: '✨ หน้าใส', value: 'brightness(1.15) contrast(1.1) saturate(1.2)' },
+  { name: '🌸 เกาหลี', value: 'brightness(1.1) sepia(0.2) hue-rotate(-10deg) saturate(1.3)' },
+  { name: '🎞️ ฟิล์ม', value: 'sepia(0.4) contrast(1.2) brightness(0.9) saturate(1.2)' },
+  { name: '🐼 ขาวดำ', value: 'grayscale(100%) contrast(1.2)' },
+  { name: '👽 มนุษย์ต่างดาว', value: 'saturate(3) hue-rotate(90deg)' },
+];
+
 function AttendanceCheckModal({ student, onClose, onSuccess }) {
   const [step, setStep] = useState('map'); // 'map' or 'camera'
+  const [selectedFilter, setSelectedFilter] = useState('none');
   const [loading, setLoading] = useState(false);
   const [gpsData, setGpsData] = useState(null);
   const [gpsError, setGpsError] = useState('');
@@ -178,6 +188,9 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
       // Mirror the canvas context so the saved photo matches the mirrored video preview
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
+      if (selectedFilter !== 'none') {
+        ctx.filter = selectedFilter;
+      }
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       const photo = canvas.toDataURL('image/jpeg', 0.6);
 
@@ -262,10 +275,34 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
                 autoPlay 
                 playsInline 
                 onLoadedMetadata={() => setCameraReady(true)}
-                style={{ width: '100%', maxWidth: '400px', borderRadius: '8px', backgroundColor: '#000', transform: 'scaleX(-1)' }} 
+                style={{ 
+                  width: '100%', maxWidth: '400px', borderRadius: '8px', backgroundColor: '#000', 
+                  transform: 'scaleX(-1)', filter: selectedFilter 
+                }} 
               />
             </div>
             
+            <div style={{ display: 'flex', overflowX: 'auto', gap: '8px', padding: '8px 0', marginBottom: '16px', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+              {CAMERA_FILTERS.map(f => (
+                <button
+                  key={f.name}
+                  onClick={() => setSelectedFilter(f.value)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    border: selectedFilter === f.value ? '2px solid var(--accent-primary)' : '1px solid #ddd',
+                    background: selectedFilter === f.value ? '#e8f0fe' : '#fff',
+                    color: selectedFilter === f.value ? 'var(--accent-primary)' : '#555',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  {f.name}
+                </button>
+              ))}
+            </div>
+
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
               <button className="btn btn-primary" onClick={handleCapture} disabled={loading || !cameraReady}>
                 {loading ? 'กำลังบันทึก...' : '📸 ถ่ายรูปและเช็คชื่อ'}
