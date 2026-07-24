@@ -22,7 +22,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึง' }, { status: 403 });
     }
 
-    const updates = { subjectName, className };
+    const updates = {};
+    if (subjectName !== undefined) updates.subjectName = subjectName;
+    if (className !== undefined) updates.className = className;
     if (qrCode !== undefined) updates.qrCode = qrCode;
     if (adminAvatarUrl !== undefined) updates.adminAvatarUrl = adminAvatarUrl;
     if (targetLat !== undefined) updates.targetLat = targetLat;
