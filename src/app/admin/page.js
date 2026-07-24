@@ -1154,11 +1154,18 @@ export default function AdminPage() {
                         let d = new Date(startOfSemester);
                         while (d <= todayDate) {
                           if (d.getDay() === classDay) {
-                            const dateStr = d.toLocaleDateString('sv');
+                            const y = d.getFullYear();
+                            const m = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            const dateStr = `${y}-${m}-${day}`;
                             const att = attendances.find(a => {
                               if (a.studentId !== row.student.id) return false;
                               const aDate = new Date(a.timestamp);
-                              return a.timestamp.startsWith(dateStr) || aDate.toLocaleDateString('sv').startsWith(dateStr);
+                              const ay = aDate.getFullYear();
+                              const am = String(aDate.getMonth() + 1).padStart(2, '0');
+                              const ad = String(aDate.getDate()).padStart(2, '0');
+                              const aDateStr = `${ay}-${am}-${ad}`;
+                              return a.timestamp.startsWith(dateStr) || aDateStr === dateStr;
                             });
                             if (att) {
                               if (att.type === 'leave') leaveCount++;
