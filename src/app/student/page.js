@@ -260,7 +260,7 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal" style={{ textAlign: 'center', width: '90%', maxWidth: '500px' }}>
+      <div className="modal-content" style={{ textAlign: 'center', width: '90%', maxWidth: '500px' }}>
         <h3>📍 เช็คชื่อเข้าเรียน</h3>
         
         {step === 'map' && (
@@ -394,7 +394,7 @@ function LeaveRequestModal({ student, onClose, onSuccess }) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal" style={{ width: '90%', maxWidth: '400px' }}>
+      <div className="modal-content" style={{ width: '90%', maxWidth: '400px' }}>
         <h3 style={{ textAlign: 'center', marginBottom: '16px' }}>📝 แจ้งลาเรียน</h3>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -1019,7 +1019,7 @@ export default function StudentPage() {
         {/* Location Warning Modal */}
         {showLocationWarningModal && (
           <div className="modal-overlay">
-            <div className="modal" style={{ textAlign: 'center', maxWidth: '400px' }}>
+            <div className="modal-content" style={{ textAlign: 'center', maxWidth: '400px' }}>
               <h3 style={{ color: '#ea4335', marginBottom: '16px' }}>⚠️ คำเตือน</h3>
               <p style={{ marginBottom: '16px', lineHeight: '1.5' }}>
                 กรุณากดเช็คชื่อ <b>ภายในห้องเรียนหรือสถานที่เรียนเท่านั้น</b>
