@@ -520,6 +520,10 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
                      circleColor = '#fbbc04'; // Yellow for approved
                      textColor = '#fff';
                    }
+                } else if (att.isOk === false) {
+                   circleColor = '#ff9800'; // Orange
+                   textColor = '#fff';
+                   content = '⚠️';
                 } else {
                    circleColor = '#34a853';
                    textColor = '#fff';
