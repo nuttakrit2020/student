@@ -1239,16 +1239,8 @@ export default function AdminPage() {
                               style={{ width: '45px', padding: '2px 4px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                             />
                           </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <input
-                              type="number"
-                              className="score-input"
-                              placeholder="-"
-                              value={row.student.behaviorScore ?? ''}
-                              onChange={(e) => handleStudentScoreChange(row.student.id, 'behaviorScore', e.target.value)}
-                              min={0} max={10}
-                              style={{ width: '45px', padding: '2px 4px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                            />
+                          <td style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                            {Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1))}
                           </td>
                           <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#137333' }}>{presentCount}</td>
                           <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#b06000' }}>{leaveCount}</td>
@@ -1261,7 +1253,8 @@ export default function AdminPage() {
                           }}>
                             {(() => {
                               const assignmentScore = Object.values(row.submissions).reduce((sum, s) => sum + (Number(s.score) || 0), 0);
-                              const totalScore = assignmentScore + (Number(row.student.midtermScore) || 0) + (Number(row.student.finalScore) || 0) + (Number(row.student.behaviorScore) || 0);
+                              const bScore = Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1));
+                              const totalScore = assignmentScore + (Number(row.student.midtermScore) || 0) + (Number(row.student.finalScore) || 0) + bScore;
                               return totalScore;
                             })()}
                           </td>

@@ -830,7 +830,7 @@ export default function StudentPage() {
               const assignmentScore = submissions.reduce((sum, s) => sum + (Number(s.score) || 0), 0);
               const midtermScore = Number(student?.midtermScore) || 0;
               const finalScore = Number(student?.finalScore) || 0;
-              const behaviorScore = Number(student?.behaviorScore) || 0;
+              const behaviorScore = Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1));
               const totalScore = assignmentScore + midtermScore + finalScore + behaviorScore;
 
               return (
