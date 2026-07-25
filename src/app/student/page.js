@@ -33,18 +33,57 @@ function EditProfileModal({ student, onClose, onSuccess }) {
     }
   };
 
+  const compressImage = (file, maxSize = 200) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxSize) {
+              height *= maxSize / width;
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width *= maxSize / height;
+              height = maxSize;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const formData = new FormData();
-      formData.append('studentId', student.id);
-      if (nickname) formData.append('nickname', nickname);
-      if (file) formData.append('avatar', file);
+      let avatarUrl = undefined;
+      if (file) {
+        avatarUrl = await compressImage(file, 200);
+      }
 
       const res = await fetch('/api/students', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: student.id,
+          nickname,
+          avatarUrl
+        }),
       });
 
       if (res.ok) {

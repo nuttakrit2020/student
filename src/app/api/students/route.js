@@ -5,10 +5,35 @@ import path from 'path';
 
 export async function POST(request) {
   try {
-    const formData = await request.formData();
-    const studentId = formData.get('studentId');
-    const nickname = formData.get('nickname');
-    const file = formData.get('avatar');
+    const contentType = request.headers.get('content-type') || '';
+    
+    let studentId, nickname, avatarUrl;
+
+    if (contentType.includes('application/json')) {
+      const data = await request.json();
+      studentId = data.studentId;
+      nickname = data.nickname;
+      avatarUrl = data.avatarUrl;
+    } else {
+      const formData = await request.formData();
+      studentId = formData.get('studentId');
+      nickname = formData.get('nickname');
+      const file = formData.get('avatar');
+      
+      if (file && file.name) {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const uploadDir = path.join(process.cwd(), 'public', 'avatars');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        const ext = file.name.split('.').pop() || 'jpg';
+        const fileName = `${studentId}-${Date.now()}.${ext}`;
+        const filePath = path.join(uploadDir, fileName);
+        fs.writeFileSync(filePath, buffer);
+        avatarUrl = `/avatars/${fileName}`;
+      }
+    }
 
     if (!studentId) {
       return NextResponse.json({ error: 'กรุณาระบุรหัสนักเรียน' }, { status: 400 });
@@ -20,27 +45,8 @@ export async function POST(request) {
     }
 
     const updates = {};
-    if (nickname) {
-      updates.nickname = nickname;
-    }
-
-    if (file && file.name) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      
-      const uploadDir = path.join(process.cwd(), 'public', 'avatars');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      // file extension
-      const ext = file.name.split('.').pop() || 'jpg';
-      const fileName = `${studentId}-${Date.now()}.${ext}`;
-      const filePath = path.join(uploadDir, fileName);
-
-      fs.writeFileSync(filePath, buffer);
-      updates.avatarUrl = `/avatars/${fileName}`;
-    }
+    if (nickname !== undefined) updates.nickname = nickname;
+    if (avatarUrl) updates.avatarUrl = avatarUrl;
 
     const updatedStudent = await updateStudent(studentId, updates);
     return NextResponse.json({ student: updatedStudent });
