@@ -1023,6 +1023,11 @@ export default function StudentPage() {
               <h3 style={{ color: '#ea4335', marginBottom: '16px' }}>⚠️ คำเตือน</h3>
               <p style={{ marginBottom: '16px', lineHeight: '1.5' }}>
                 กรุณากดเช็คชื่อ <b>ภายในห้องเรียนหรือสถานที่เรียนเท่านั้น</b>
+                {settings?.targetRoomName && (
+                  <span style={{ display: 'block', color: 'var(--accent-primary)', marginTop: '8px', fontWeight: 'bold' }}>
+                    (ห้องเรียนปัจจุบัน: {settings.targetRoomName})
+                  </span>
+                )}
                 <br />
                 ระบบจะตรวจสอบพิกัด GPS ของคุณ หากอยู่ไม่ตรงจุด จะถือว่าการเช็คชื่อไม่สมบูรณ์
               </p>

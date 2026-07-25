@@ -367,6 +367,7 @@ export default function AdminPage() {
   const [className, setClassName] = useState('');
   const [targetLat, setTargetLat] = useState(null);
   const [targetLng, setTargetLng] = useState(null);
+  const [targetRoomName, setTargetRoomName] = useState('');
   const [qrCode, setQrCode] = useState('');
   const [showQrCode, setShowQrCode] = useState(true);
   const [adminAvatarUrl, setAdminAvatarUrl] = useState('');
@@ -428,6 +429,7 @@ export default function AdminPage() {
           setClassName(result.settings.className || '');
           setTargetLat(result.settings.targetLat || null);
           setTargetLng(result.settings.targetLng || null);
+          setTargetRoomName(result.settings.targetRoomName || '');
           setQrCode(result.settings.qrCode || '');
           setAdminAvatarUrl(result.settings.adminAvatarUrl || '');
           if (result.settings.classSchedules) {
@@ -848,11 +850,12 @@ export default function AdminPage() {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminKey, targetLat: null, targetLng: null })
+        body: JSON.stringify({ adminKey, targetLat: null, targetLng: null, targetRoomName: null })
       });
       if (res.ok) {
         setTargetLat(null);
         setTargetLng(null);
+        setTargetRoomName('');
         addToast('ยกเลิกพิกัดห้องเรียนสำเร็จ');
       } else {
         addToast('ไม่สามารถยกเลิกพิกัดได้', 'error');
@@ -865,6 +868,9 @@ export default function AdminPage() {
   };
 
   const handleSetTargetLocation = () => {
+    const roomName = window.prompt("ระบุชื่อห้องเรียน (เช่น ห้องคอมพิวเตอร์ 1):", targetRoomName || "");
+    if (roomName === null) return;
+
     if (!navigator.geolocation) {
       addToast('เบราว์เซอร์ของคุณไม่รองรับ GPS', 'error');
       return;
@@ -878,11 +884,12 @@ export default function AdminPage() {
           const res = await fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminKey, targetLat: lat, targetLng: lng })
+            body: JSON.stringify({ adminKey, targetLat: lat, targetLng: lng, targetRoomName: roomName })
           });
           if (res.ok) {
             setTargetLat(lat);
             setTargetLng(lng);
+            setTargetRoomName(roomName);
             addToast('บันทึกพิกัดห้องเรียนสำเร็จ');
           } else {
             addToast('ไม่สามารถบันทึกพิกัดได้', 'error');
@@ -1543,7 +1550,7 @@ export default function AdminPage() {
             
             {targetLat && targetLng && (
               <div style={{ background: '#e6f4ea', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '0.9rem', color: '#137333', border: '1px solid #ceead6' }}>
-                ✅ ตั้งพิกัดห้องเรียนแล้ว (ระยะที่อนุญาต: ไม่เกิน 8 เมตร)
+                ✅ ตั้งพิกัดห้องเรียนแล้ว {targetRoomName ? `(ห้อง: ${targetRoomName}) ` : ''}(ระยะที่อนุญาต: ไม่เกิน 8 เมตร)
               </div>
             )}
             
