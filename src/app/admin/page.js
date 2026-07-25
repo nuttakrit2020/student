@@ -1421,6 +1421,7 @@ export default function AdminPage() {
                         />
                       </th>
                       <th>ลำดับ</th>
+                      <th>รูป</th>
                       <th>รหัส</th>
                       <th>ชื่อ-สกุล</th>
                       <th>ชื่อเล่น</th>
@@ -1441,6 +1442,15 @@ export default function AdminPage() {
                             />
                           </td>
                           <td style={{ fontFamily: 'var(--font-en)' }}>{index + 1}</td>
+                          <td>
+                            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', overflow: 'hidden' }}>
+                              {row.student.avatarUrl ? (
+                                <img src={row.student.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                row.student.nickname?.charAt(0) || row.student.name?.charAt(0) || '?'
+                              )}
+                            </div>
+                          </td>
                           <td style={{ fontFamily: 'var(--font-en)', fontWeight: 600 }}>{row.student.id}</td>
                           <td>{row.student.name}</td>
                           <td>{row.student.nickname || '-'}</td>
