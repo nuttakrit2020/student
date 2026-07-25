@@ -1133,6 +1133,7 @@ export default function AdminPage() {
                       <th style={{ background: '#fef7e0', color: '#b06000' }}>ลา</th>
                       <th style={{ background: '#fce8e6', color: '#c5221f' }}>ขาด</th>
                       <th>รวม (100)</th>
+                      <th style={{ background: 'var(--bg-primary)', color: 'var(--accent-primary)' }}>เกรด</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1256,6 +1257,27 @@ export default function AdminPage() {
                               const bScore = Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1));
                               const totalScore = assignmentScore + (Number(row.student.midtermScore) || 0) + (Number(row.student.finalScore) || 0) + bScore;
                               return totalScore;
+                            })()}
+                          </td>
+                          <td style={{
+                            fontFamily: 'var(--font-en)',
+                            fontWeight: 700,
+                            textAlign: 'center',
+                            color: 'var(--accent-primary)',
+                            fontSize: '1.1rem'
+                          }}>
+                            {(() => {
+                              const assignmentScore = Object.values(row.submissions).reduce((sum, s) => sum + (Number(s.score) || 0), 0);
+                              const bScore = Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1));
+                              const totalScore = assignmentScore + (Number(row.student.midtermScore) || 0) + (Number(row.student.finalScore) || 0) + bScore;
+                              if (totalScore < 50) return 0;
+                              if (totalScore < 55) return 1;
+                              if (totalScore < 60) return 1.5;
+                              if (totalScore < 65) return 2;
+                              if (totalScore < 70) return 2.5;
+                              if (totalScore < 75) return 3;
+                              if (totalScore < 80) return 3.5;
+                              return 4;
                             })()}
                           </td>
                         </tr>

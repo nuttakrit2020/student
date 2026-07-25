@@ -856,6 +856,21 @@ export default function StudentPage() {
                     <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--accent-primary)' }}>รวมทั้งหมด</span>
                     <strong style={{ fontFamily: 'var(--font-en)', fontSize: '1.3rem', color: 'var(--accent-primary)' }}>{totalScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>/ 100</span></strong>
                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '2px dashed var(--accent-light)' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#137333' }}>🏆 เกรดที่ได้</span>
+                    <strong style={{ fontFamily: 'var(--font-en)', fontSize: '1.5rem', color: '#137333' }}>
+                      {(() => {
+                        if (totalScore < 50) return 0;
+                        if (totalScore < 55) return 1;
+                        if (totalScore < 60) return 1.5;
+                        if (totalScore < 65) return 2;
+                        if (totalScore < 70) return 2.5;
+                        if (totalScore < 75) return 3;
+                        if (totalScore < 80) return 3.5;
+                        return 4;
+                      })()}
+                    </strong>
+                  </div>
                 </>
               );
             })()}
