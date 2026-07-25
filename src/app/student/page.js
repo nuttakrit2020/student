@@ -983,10 +983,11 @@ export default function StudentPage() {
           <EditProfileModal
             student={student}
             onClose={() => setShowProfileModal(false)}
-            onSuccess={(newAvatarUrl) => {
-              setStudent({ ...student, avatarUrl: newAvatarUrl });
+            onSuccess={(updatedStudent) => {
+              setStudent(updatedStudent);
+              sessionStorage.setItem('student', JSON.stringify(updatedStudent));
               setShowProfileModal(false);
-              addToast('อัปเดตโปรไฟล์เรียบร้อยแล้ว');
+              addToast('อัปเดตข้อมูลสำเร็จ');
             }}
           />
         )}
