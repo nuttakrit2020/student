@@ -159,7 +159,7 @@ const CAMERA_FILTERS = [
   { name: '👽 มนุษย์ต่างดาว', value: 'saturate(3) hue-rotate(90deg)' },
 ];
 
-function AttendanceCheckModal({ student, onClose, onSuccess }) {
+function AttendanceCheckModal({ student, settings, onClose, onSuccess }) {
   const [step, setStep] = useState('map'); // 'map' or 'camera'
   const [selectedFilter, setSelectedFilter] = useState('none');
   const [loading, setLoading] = useState(false);
@@ -265,7 +265,9 @@ function AttendanceCheckModal({ student, onClose, onSuccess }) {
         
         {step === 'map' && (
           <div>
-            <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>กำลังดึงพิกัดตำแหน่งปัจจุบันของคุณ...</p>
+            <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px', fontWeight: settings?.targetRoomName ? 'bold' : 'normal', color: settings?.targetRoomName ? 'var(--accent-primary)' : '#666' }}>
+              {settings?.targetRoomName ? `กรุณาไปที่ ${settings.targetRoomName} ก่อนทำการเช็คชื่อ` : 'กำลังดึงพิกัดตำแหน่งปัจจุบันของคุณ...'}
+            </p>
             {gpsData ? (
               <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #ddd', marginBottom: '16px' }}>
                 <iframe
@@ -995,6 +997,7 @@ export default function StudentPage() {
         {showAttendanceModal && (
           <AttendanceCheckModal
             student={student}
+            settings={settings}
             onClose={() => setShowAttendanceModal(false)}
             onSuccess={(msg) => {
               setShowAttendanceModal(false);
