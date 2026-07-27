@@ -615,13 +615,24 @@ export default function StudentPage() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const fetchData = useCallback(async (studentData) => {
+  const fetchData = useCallback(async (studentData, subjectId = null) => {
     try {
+      // Always fetch subjects list
+      const subjectsRes = await fetch('/api/subjects');
+      const subjectsList = await subjectsRes.json();
+      if (Array.isArray(subjectsList) && subjectsList.length > 0) {
+        setSubjects(subjectsList);
+        if (!subjectId) {
+          subjectId = subjectsList[0].id;
+          setSelectedSubject(subjectId);
+        }
+      }
+
       const [assignRes, subRes, setRes, attRes] = await Promise.all([
-        fetch('/api/assignments'),
-        fetch(`/api/submissions?studentId=${studentData.id}`),
+        fetch(`/api/assignments?subjectId=${subjectId || ''}`),
+        fetch(`/api/submissions?studentId=${studentData.id}&subjectId=${subjectId || ''}`),
         fetch('/api/settings'),
-        fetch(`/api/attendance?studentId=${studentData.id}`),
+        fetch(`/api/attendance?studentId=${studentData.id}&subjectId=${subjectId || ''}`),
       ]);
 
       const assignData = await assignRes.json();
@@ -641,6 +652,15 @@ export default function StudentPage() {
       setLoading(false);
     }
   }, []);
+
+  // Handle subject change
+  const handleSubjectChange = useCallback((newSubjectId) => {
+    setSelectedSubject(newSubjectId);
+    if (student) {
+      setLoading(true);
+      fetchData(student, newSubjectId);
+    }
+  }, [student, fetchData]);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('student');
@@ -697,22 +717,25 @@ export default function StudentPage() {
 
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
-  const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
-  const getRoomKey = (r) => r ? '3/' + r.replace(/^ม\.?\s*/, '').replace(/^3\//, '').trim() : '';
+  const startOfSemester = new Date(settings.semesterStart || '2026-05-18T00:00:00+07:00');
+  
+  // Get class schedules from selected subject (no more hardcoded)
+  const currentSubject = subjects.find(s => s.id === selectedSubject);
+  const subjectSchedules = currentSubject?.classSchedules || settings.classSchedules || {};
+  const getRoomKey = (r) => {
+    if (!r) return '';
+    const cleaned = r.replace(/^ม\.?\s*/, '').trim();
+    // Try to find exact match first
+    if (subjectSchedules[cleaned]) return cleaned;
+    // Try with common prefixes
+    for (const key of Object.keys(subjectSchedules)) {
+      if (cleaned === key || r === key) return key;
+    }
+    return cleaned;
+  };
   const roomKey = getRoomKey(student?.room);
   
-  const classSchedules = {
-    '3/1': { day: 4 },
-    '3/2': { day: 5 },
-    '3/3': { day: 5 },
-    '3/4': { day: 5 },
-    '3/5': { day: 1 },
-    '3/6': { day: 3 },
-    '3/7': { day: 1 },
-    '3/8': { day: 5 }
-  };
-  
-  const schedule = classSchedules[roomKey];
+  const schedule = subjectSchedules[roomKey];
   const classDay = schedule ? schedule.day : null;
   if (classDay !== null) {
     let d = new Date(startOfSemester);
@@ -793,7 +816,7 @@ export default function StudentPage() {
                 ID: {student?.id} • {student?.nickname} 
                 {student?.room ? ` • ห้อง ${student.room}` : ''}
               </p>
-              {settings.subjectName && <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>{settings.subjectName} {settings.className}</p>}
+              {currentSubject && <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>{currentSubject.name} {currentSubject.className}</p>}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -803,7 +826,7 @@ export default function StudentPage() {
                 className="form-input" 
                 style={{ flex: 1, border: 'none', background: 'transparent', padding: '4px', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}
                 value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
+                onChange={(e) => handleSubjectChange(e.target.value)}
               >
                 {subjects.map(s => (
                   <option key={s.id} value={s.id}>{s.name} ({s.className})</option>
@@ -825,16 +848,7 @@ export default function StudentPage() {
         </div>
 
         {/* Student Calendar */}
-        <StudentCalendar attendances={attendances} classSchedules={{
-          '3/1': { day: 4, label: 'พฤหัสบดี' },
-          '3/2': { day: 5, label: 'ศุกร์' },
-          '3/3': { day: 5, label: 'ศุกร์' },
-          '3/4': { day: 5, label: 'ศุกร์' },
-          '3/5': { day: 1, label: 'จันทร์' },
-          '3/6': { day: 3, label: 'พุธ' },
-          '3/7': { day: 1, label: 'จันทร์' },
-          '3/8': { day: 5, label: 'ศุกร์' }
-        }} studentRoom={student?.room} />
+        <StudentCalendar attendances={attendances} classSchedules={subjectSchedules} studentRoom={student?.room} />
 
         {/* Stats */}
         <div className="stats-grid">

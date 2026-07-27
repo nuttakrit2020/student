@@ -387,16 +387,7 @@ export default function AdminPage() {
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [calendarRoom, setCalendarRoom] = useState('');
   const [editingCell, setEditingCell] = useState(null);
-  const [classSchedules, setClassSchedules] = useState({
-    '3/1': { day: 4, start: '13:30', end: '14:20', label: 'พฤหัสบดี 13:30-14:20' },
-    '3/2': { day: 5, start: '11:50', end: '12:40', label: 'ศุกร์ 11:50-12:40' },
-    '3/3': { day: 5, start: '08:30', end: '09:20', label: 'ศุกร์ 08:30-09:20' },
-    '3/4': { day: 5, start: '12:40', end: '13:30', label: 'ศุกร์ 12:40-13:30' },
-    '3/5': { day: 1, start: '13:30', end: '14:20', label: 'จันทร์ 13:30-14:20' },
-    '3/6': { day: 3, start: '08:30', end: '09:20', label: 'พุธ 08:30-09:20' },
-    '3/7': { day: 1, start: '14:20', end: '15:10', label: 'จันทร์ 14:20-15:10' },
-    '3/8': { day: 5, start: '10:10', end: '11:00', label: 'ศุกร์ 10:10-11:00' },
-  });
+  const [classSchedules, setClassSchedules] = useState({});
 
   // Drag to check states
   const [isDragging, setIsDragging] = useState(false);
@@ -405,6 +396,7 @@ export default function AdminPage() {
   const [toasts, setToasts] = useState([]);
   const router = useRouter();
   const fileInputRef = useRef(null);
+  const selectedSubjectRef = useRef(selectedSubject);
 
   const addToast = (message, type = 'success') => {
     const id = Date.now();
@@ -417,7 +409,7 @@ export default function AdminPage() {
 
   const fetchData = useCallback(async (key, overrideSubjectId = null) => {
     try {
-      const currentSubId = overrideSubjectId || selectedSubject;
+      const currentSubId = overrideSubjectId || selectedSubjectRef.current;
       const res = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -431,9 +423,11 @@ export default function AdminPage() {
         if (result.subjects) {
           setSubjects(result.subjects);
           if (!currentSubId && result.subjects.length > 0) {
-            setSelectedSubject(result.subjects[0].id);
+            const firstId = result.subjects[0].id;
+            setSelectedSubject(firstId);
+            selectedSubjectRef.current = firstId;
             // Fetch again with the first subject
-            return fetchData(key, result.subjects[0].id);
+            return fetchData(key, firstId);
           }
         }
 
@@ -470,7 +464,7 @@ export default function AdminPage() {
       } finally {
         setLoading(false);
       }
-    }, [router, selectedSubject]);
+    }, [router]);
 
   useEffect(() => {
     const key = sessionStorage.getItem('adminKey');
@@ -789,7 +783,7 @@ export default function AdminPage() {
         method: 'DELETE',
       });
       if (res.ok) {
-        fetchData();
+        fetchData(adminKey);
         showToast('ลบนักเรียนทั้งหมดออกจากระบบแล้ว', 'success');
         setSelectedStudents([]);
       } else {
@@ -1189,7 +1183,15 @@ export default function AdminPage() {
                       todayDate.setHours(0, 0, 0, 0);
                       const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
                       
-                      const localGetRoomKey = (r) => r ? '3/' + r.replace(/^ม\.?\s*/, '').replace(/^3\//, '').trim() : '';
+                      const localGetRoomKey = (r) => {
+                        if (!r) return '';
+                        const cleaned = r.replace(/^ม\.?\s*/, '').trim();
+                        if (classSchedules[cleaned]) return cleaned;
+                        for (const key of Object.keys(classSchedules)) {
+                          if (cleaned === key || r === key) return key;
+                        }
+                        return cleaned;
+                      };
                       const roomKey = localGetRoomKey(row.student?.room);
                       const schedule = classSchedules[roomKey];
                       const classDay = schedule ? schedule.day : null;
@@ -2122,6 +2124,8 @@ export default function AdminPage() {
                   .then(data => {
                     if (data.subject) {
                       addToast('เพิ่มวิชาเรียบร้อยแล้ว');
+                      setSelectedSubject(data.subject.id);
+                      selectedSubjectRef.current = data.subject.id;
                       fetchData(adminKey, data.subject.id);
                     } else {
                       addToast(data.error || 'ไม่สามารถเพิ่มวิชาได้', 'error');
@@ -2184,9 +2188,22 @@ export default function AdminPage() {
                     const res = await fetch('/api/settings', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ subjectId: selectedSubject, subjectName, className, adminKey, qrCode })
+                      body: JSON.stringify({ 
+                        subjectId: selectedSubject, 
+                        subjectName, 
+                        className, 
+                        classSchedules,
+                        targetLat,
+                        targetLng,
+                        targetRoomName,
+                        adminKey, 
+                        qrCode 
+                      })
                     });
-                    if (res.ok) addToast('บันทึกการตั้งค่าสำเร็จ');
+                    if (res.ok) {
+                      addToast('บันทึกการตั้งค่าสำเร็จ');
+                      fetchData(adminKey);
+                    }
                     else addToast('เกิดข้อผิดพลาด', 'error');
                   } catch (e) {
                     addToast('เกิดข้อผิดพลาด', 'error');

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { addAttendance, getAttendances, deleteAttendance, updateAttendance, getSettings } from '@/lib/data';
+import { addAttendance, getAttendances, deleteAttendance, updateAttendance, getSettings, getSubjectById } from '@/lib/data';
 
 // Haversine distance in meters
 function calculateDistance(lat1, lon1, lat2, lon2) {

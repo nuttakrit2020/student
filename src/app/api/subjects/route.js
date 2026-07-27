@@ -63,10 +63,19 @@ export async function DELETE(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (!id) {
+    return NextResponse.json({ error: 'Missing subject ID' }, { status: 400 });
+  }
+
   try {
     await deleteSubject(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete subject' }, { status: 500 });
   }
+}
+
+// PATCH is alias for PUT
+export async function PATCH(request) {
+  return PUT(request);
 }
