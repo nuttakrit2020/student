@@ -1276,9 +1276,9 @@ export default function AdminPage() {
                 <table className="data-table" style={{ userSelect: 'none' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '40px', textAlign: 'center' }}>ที่</th>
-                      <th>รหัส</th>
-                      <th>ชื่อ-สกุล</th>
+                      <th className="sticky-col-1" style={{ width: '45px', minWidth: '45px', maxWidth: '45px', textAlign: 'center', padding: '14px 4px' }}>ที่</th>
+                      <th className="sticky-col-2" style={{ width: '80px', minWidth: '80px', maxWidth: '80px', padding: '14px 8px' }}>รหัส</th>
+                      <th className="sticky-col-3" style={{ minWidth: '150px' }}>ชื่อ-สกุล</th>
                       {assignments.map((a) => (
                         <th 
                           key={a.id} 
@@ -1371,10 +1371,10 @@ export default function AdminPage() {
                               </td>
                             </tr>
                           )}
-                          <tr>
-                          <td style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{idx + 1}</td>
-                          <td style={{ fontFamily: 'var(--font-en)', fontWeight: 600 }}>{row.student.id}</td>
-                          <td>{row.student.name}</td>
+                          <tr className="student-row">
+                          <td className="sticky-col-1" style={{ width: '45px', minWidth: '45px', maxWidth: '45px', textAlign: 'center', padding: '14px 4px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{idx + 1}</td>
+                          <td className="sticky-col-2" style={{ width: '80px', minWidth: '80px', maxWidth: '80px', padding: '14px 8px', fontFamily: 'var(--font-en)', fontWeight: 600 }}>{row.student.id}</td>
+                          <td className="sticky-col-3" style={{ minWidth: '150px' }}>{row.student.name}</td>
                           {assignments.map((a) => {
                             const sub = row.submissions[a.id];
                             return (

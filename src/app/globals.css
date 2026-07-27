@@ -695,6 +695,45 @@ body::after {
 .modern-table tr:hover td { background: rgba(108, 92, 231, 0.02); }
 .modern-table tr:last-child td { border-bottom: none; }
 
+/* Table UX Enhancements (Zebra, Hover, Sticky) */
+.student-row:nth-child(even) td {
+  background-color: rgba(0, 0, 0, 0.015);
+}
+.student-row:hover td {
+  background-color: rgba(108, 92, 231, 0.08) !important;
+}
+
+.sticky-col-1 {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: var(--bg-card);
+  box-shadow: 1px 0 0 rgba(0,0,0,0.05);
+}
+.sticky-col-2 {
+  position: sticky;
+  left: 45px; /* col 1 width (45px approx) */
+  z-index: 10;
+  background: var(--bg-card);
+  box-shadow: 1px 0 0 rgba(0,0,0,0.05);
+}
+.sticky-col-3 {
+  position: sticky;
+  left: 125px; /* col 1 + col 2 width (45 + 80) */
+  z-index: 10;
+  background: var(--bg-card);
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+th.sticky-col-1, th.sticky-col-2, th.sticky-col-3 {
+  background: #f8f9fa; /* slightly off-white to match header */
+  z-index: 11; /* Header stays above body cells */
+}
+.student-row:nth-child(even) td.sticky-col-1,
+.student-row:nth-child(even) td.sticky-col-2,
+.student-row:nth-child(even) td.sticky-col-3 {
+  background-color: #fcfcfc;
+}
+
 /* Calendar Specifics */
 .modern-table .today-header {
   background: var(--accent-gradient);
