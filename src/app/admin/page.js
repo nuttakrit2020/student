@@ -2012,14 +2012,14 @@ export default function AdminPage() {
                             })}
                             <td style={{ textAlign: 'center', fontWeight: 600, fontFamily: 'var(--font-en)' }}>
                               <span style={{ 
-                                color: schedule ? (
+                                color: classDays.length > 0 ? (
                                   weekStatus.includes('✅') ? '#137333' : 
                                   weekStatus.includes('❌') ? '#d93025' : 
                                   weekStatus.includes('🟡') ? '#d68200' :
                                   weekStatus.includes('⏳') ? '#f39c12' : '#999'
                                 ) : '#999'
                               }}>
-                                {schedule ? weekStatus : '-'}
+                                {classDays.length > 0 ? weekStatus : '-'}
                               </span>
                             </td>
                           </tr>
