@@ -1822,39 +1822,51 @@ export default function AdminPage() {
 
                               let cellContent = '';
                               let cellStyle = { textAlign: 'center', fontSize: '1.2rem' };
+                              let weekStatus = '-';
 
-                              if (!isClassDay) {
-                                // Not a scheduled class day for this room
-                                cellContent = '\u2014';
-                                cellStyle.color = '#ddd';
-                                cellStyle.background = '#fafafa';
-                              } else if (isFuture) {
-                                scheduledCount++;
-                                cellContent = '\u23f3';
-                                cellStyle.color = '#bbb';
-                              } else {
-                                scheduledCount++;
+                              if (isClassDay) {
                                 if (att) {
                                   presentCount++;
                                   if (att.type === 'leave') {
                                     if (att.status === 'pending') {
                                       cellContent = '⏳';
-                                      cellStyle.background = '#fdf3d8'; // Light orange
+                                      cellStyle.background = '#fdf3d8';
+                                      weekStatus = '⏳ ลา (รออนุมัติ)';
                                     } else {
                                       cellContent = '🟡';
                                       cellStyle.background = '#fff9c4';
+                                      weekStatus = '🟡 ลา';
                                     }
                                   } else if (att.isOk === false) {
-                                    cellContent = '\u26a0\ufe0f';
+                                    cellContent = '⚠️';
                                     cellStyle.background = '#fff3e0';
+                                    weekStatus = '✅ มา (ผิดจุด)';
                                   } else {
-                                    cellContent = '\u2705';
+                                    cellContent = '✅';
                                     cellStyle.background = '#e6f4ea';
+                                    weekStatus = '✅ มา';
                                   }
                                 } else {
-                                  cellContent = '\u274c';
-                                  cellStyle.background = '#fce8e6';
+                                  if (!isClassDay) {
+                                    cellContent = '\u2014';
+                                    cellStyle.color = '#ddd';
+                                    cellStyle.background = '#fafafa';
+                                  } else if (isFuture || isToday) {
+                                    scheduledCount++;
+                                    cellContent = '-';
+                                    cellStyle.color = '#bbb';
+                                    weekStatus = '⏳ รอเช็คชื่อ';
+                                  } else {
+                                    scheduledCount++;
+                                    cellContent = '❌';
+                                    cellStyle.background = '#fce8e6';
+                                    weekStatus = '❌ ขาด';
+                                  }
                                 }
+                              } else {
+                                cellContent = '\u2014';
+                                cellStyle.color = '#ddd';
+                                cellStyle.background = '#fafafa';
                               }
 
                               if (isToday && isClassDay) {
@@ -1895,13 +1907,16 @@ export default function AdminPage() {
                               );
                             })}
                             <td style={{ textAlign: 'center', fontWeight: 600, fontFamily: 'var(--font-en)' }}>
-                              {schedule ? (
-                                <span style={{ color: presentCount >= 1 ? '#137333' : '#d93025' }}>
-                                  {presentCount === 1 ? '\u2705 \u0e21\u0e32' : '\u274c \u0e02\u0e32\u0e14'}
-                                </span>
-                              ) : (
-                                <span style={{ color: '#999' }}>-</span>
-                              )}
+                              <span style={{ 
+                                color: schedule ? (
+                                  weekStatus.includes('✅') ? '#137333' : 
+                                  weekStatus.includes('❌') ? '#d93025' : 
+                                  weekStatus.includes('🟡') ? '#d68200' :
+                                  weekStatus.includes('⏳') ? '#f39c12' : '#999'
+                                ) : '#999'
+                              }}>
+                                {schedule ? weekStatus : '-'}
+                              </span>
                             </td>
                           </tr>
                         );
