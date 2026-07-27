@@ -439,6 +439,12 @@ function LeaveRequestModal({ student, subjectId, onClose, onSuccess }) {
 function StudentCalendar({ attendances, classSchedules, studentRoom }) {
   const [monthOffset, setMonthOffset] = useState(0);
 
+  const getNormalizedSchedules = (scheds) => {
+    if (!scheds) return [];
+    if (Array.isArray(scheds)) return scheds;
+    return Object.entries(scheds).map(([room, data]) => ({ id: `${room}_${data.day}_${data.start}`, room, ...data }));
+  };
+
   const today = new Date();
   const displayDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
   const year = displayDate.getFullYear();
@@ -449,9 +455,13 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
   
   const daysInMonth = lastDay.getDate();
   const startingDayOfWeek = firstDay.getDay();
-  const getRoomKey = (r) => r ? '3/' + r.replace(/^ม\.?\s*/, '').replace(/^3\//, '').trim() : '';
-  const schedule = classSchedules ? classSchedules[getRoomKey(studentRoom)] : null;
-  const classDay = schedule ? schedule.day : null;
+
+  const roomScheds = getNormalizedSchedules(classSchedules).filter(s => {
+    const cleanedRoom = (studentRoom || '').replace(/^ม\.?\s*/, '').trim();
+    return s.room === cleanedRoom || s.room === studentRoom;
+  });
+  const classDays = roomScheds.map(s => s.day);
+
   const days = [];
   for (let i = 0; i < startingDayOfWeek; i++) {
     days.push(null);
@@ -496,7 +506,7 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
           const todayStr = `${ty}-${tm}-${td}`;
           
           const isToday = dateStr === todayStr;
-          const isClassDay = classDay !== null && date.getDay() === classDay;
+          const isClassDay = classDays.length > 0 && classDays.includes(date.getDay());
           
           const att = attendances.find(a => {
             const aDate = new Date(a.timestamp);
@@ -515,15 +525,15 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
              if (att) {
                 if (att.type === 'leave') {
                    if (att.status === 'pending') {
-                     circleColor = '#f39c12'; // Orange/amber for pending
+                     circleColor = '#f39c12';
                      textColor = '#fff';
                      content = '⏳';
                    } else {
-                     circleColor = '#fbbc04'; // Yellow for approved
+                     circleColor = '#fbbc04';
                      textColor = '#fff';
                    }
                 } else if (att.isOk === false) {
-                   circleColor = '#ff9800'; // Orange
+                   circleColor = '#ff9800';
                    textColor = '#fff';
                    content = '⚠️';
                 } else {
@@ -594,11 +604,9 @@ export default function StudentPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Detect LINE In-App Browser
     const userAgent = navigator.userAgent || navigator.vendor || window.opera;
     if (userAgent.indexOf("Line") > -1) {
       setIsLineBrowser(true);
-      // Try to force external browser if not already tried (works on some Android devices)
       if (!window.location.search.includes("openExternalBrowser=1")) {
         const separator = window.location.href.includes("?") ? "&" : "?";
         window.location.href = window.location.href + separator + "openExternalBrowser=1";
@@ -617,7 +625,6 @@ export default function StudentPage() {
 
   const fetchData = useCallback(async (studentData, subjectId = null) => {
     try {
-      // Always fetch subjects list
       const subjectsRes = await fetch('/api/subjects');
       const subjectsList = await subjectsRes.json();
       if (Array.isArray(subjectsList) && subjectsList.length > 0) {
@@ -653,7 +660,6 @@ export default function StudentPage() {
     }
   }, []);
 
-  // Handle subject change
   const handleSubjectChange = useCallback((newSubjectId) => {
     setSelectedSubject(newSubjectId);
     if (student) {
@@ -675,6 +681,12 @@ export default function StudentPage() {
 
   const getSubmissionForAssignment = (assignmentId) => {
     return submissions.find((s) => s.assignmentId === assignmentId);
+  };
+
+  const getNormalizedSchedules = (scheds) => {
+    if (!scheds) return [];
+    if (Array.isArray(scheds)) return scheds;
+    return Object.entries(scheds).map(([room, data]) => ({ id: `${room}_${data.day}_${data.start}`, room, ...data }));
   };
 
   const handleProfileSuccess = (updatedStudent) => {
