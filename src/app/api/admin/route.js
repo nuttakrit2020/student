@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSubmissionSummary, getSettings, getSubjects } from '@/lib/data';
+import { getSubmissionSummary, getSettings, getSubjects, ensureDefaultSubject } from '@/lib/data';
 
 export async function POST(request) {
   try {
@@ -12,9 +12,15 @@ export async function POST(request) {
       );
     }
 
+    // Ensure at least one subject exists (auto-migrate from old settings)
+    let subjects = await getSubjects();
+    if (subjects.length === 0) {
+      const defaultSub = await ensureDefaultSubject();
+      subjects = [defaultSub];
+    }
+
     const summary = await getSubmissionSummary(subjectId);
     const settings = await getSettings();
-    const subjects = await getSubjects();
     return NextResponse.json({ ...summary, settings, subjects });
   } catch (error) {
     return NextResponse.json(
