@@ -2258,10 +2258,10 @@ export default function AdminPage() {
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>📅 ตารางเรียนของแต่ละห้อง (ใช้สำหรับการเช็คชื่อ)</h3>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                  {Object.entries(classSchedules || {}).map(([room, sched]) => (
-                    <div key={room} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                  {getNormalizedSchedules(classSchedules).map((sched) => (
+                    <div key={sched.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
                       <div>
-                        <span style={{ fontWeight: 600, marginRight: '12px' }}>ห้อง {room}</span>
+                        <span style={{ fontWeight: 600, marginRight: '12px' }}>ห้อง {sched.room}</span>
                         <span style={{ color: 'var(--text-secondary)' }}>{sched.label}</span>
                       </div>
                       <button 
