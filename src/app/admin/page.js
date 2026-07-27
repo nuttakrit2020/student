@@ -387,7 +387,13 @@ export default function AdminPage() {
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [calendarRoom, setCalendarRoom] = useState('');
   const [editingCell, setEditingCell] = useState(null);
-  const [classSchedules, setClassSchedules] = useState({});
+  const [classSchedules, setClassSchedules] = useState([]);
+
+  const getNormalizedSchedules = (scheds) => {
+    if (!scheds) return [];
+    if (Array.isArray(scheds)) return scheds;
+    return Object.entries(scheds).map(([room, data]) => ({ id: `${room}_${data.day}_${data.start}`, room, ...data }));
+  };
 
   // Drag to check states
   const [isDragging, setIsDragging] = useState(false);
@@ -445,7 +451,7 @@ export default function AdminPage() {
             setTargetLat(sub.targetLat || null);
             setTargetLng(sub.targetLng || null);
             setTargetRoomName(sub.targetRoomName || '');
-            setClassSchedules(sub.classSchedules || {});
+            setClassSchedules(getNormalizedSchedules(sub.classSchedules));
           }
         }
 
@@ -942,13 +948,9 @@ export default function AdminPage() {
     if (!roomStr) return false;
     const cleanedRoom = roomStr.replace(/^ม\.?\s*/, '').trim();
 
-    const scheduleKeys = Object.keys(classSchedules || {});
-    if (scheduleKeys.length > 0) {
-      if (classSchedules[cleanedRoom]) return true;
-      for (const key of scheduleKeys) {
-        if (cleanedRoom === key || roomStr === key) return true;
-      }
-      return false; 
+    const normalized = getNormalizedSchedules(classSchedules);
+    if (normalized.length > 0) {
+      return normalized.some(s => s.room === cleanedRoom || s.room === roomStr);
     }
     
     if (className) {
@@ -1235,23 +1237,16 @@ export default function AdminPage() {
                       todayDate.setHours(0, 0, 0, 0);
                       const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
                       
-                      const localGetRoomKey = (r) => {
-                        if (!r) return '';
-                        const cleaned = r.replace(/^ม\.?\s*/, '').trim();
-                        if (classSchedules[cleaned]) return cleaned;
-                        for (const key of Object.keys(classSchedules)) {
-                          if (cleaned === key || r === key) return key;
-                        }
-                        return cleaned;
-                      };
-                      const roomKey = localGetRoomKey(row.student?.room);
-                      const schedule = classSchedules[roomKey];
-                      const classDay = schedule ? schedule.day : null;
+                      const roomScheds = getNormalizedSchedules(classSchedules).filter(s => {
+                        const cleanedRoom = (row.student?.room || '').replace(/^ม\.?\s*/, '').trim();
+                        return s.room === cleanedRoom || s.room === row.student?.room;
+                      });
+                      const classDays = roomScheds.map(s => s.day);
 
-                      if (classDay !== null) {
+                      if (classDays.length > 0) {
                         let d = new Date(startOfSemester);
                         while (d <= todayDate) {
-                          if (d.getDay() === classDay) {
+                          if (classDays.includes(d.getDay())) {
                             const y = d.getFullYear();
                             const m = String(d.getMonth() + 1).padStart(2, '0');
                             const day = String(d.getDate()).padStart(2, '0');
@@ -2273,8 +2268,7 @@ export default function AdminPage() {
                         className="btn btn-secondary btn-sm" 
                         style={{ color: 'var(--error)', padding: '4px 8px' }}
                         onClick={() => {
-                          const newSched = { ...classSchedules };
-                          delete newSched[room];
+                          const newSched = getNormalizedSchedules(classSchedules).filter(s => s.id !== sched.id);
                           setClassSchedules(newSched);
                         }}
                       >
@@ -2326,10 +2320,9 @@ export default function AdminPage() {
                       const dayNames = { 1: 'จ.', 2: 'อ.', 3: 'พ.', 4: 'พฤ.', 5: 'ศ.' };
                       const label = `${dayNames[day]} ${start}-${end}`;
                       
-                      setClassSchedules({
-                        ...(classSchedules || {}),
-                        [room]: { day, start, end, label }
-                      });
+                      const newScheds = [...getNormalizedSchedules(classSchedules)];
+                      newScheds.push({ id: Date.now().toString() + Math.random().toString(36).substr(2, 5), room, day, start, end, label });
+                      setClassSchedules(newScheds);
                       
                       document.getElementById('new-sched-room').value = '';
                       document.getElementById('new-sched-start').value = '';
