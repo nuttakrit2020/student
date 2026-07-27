@@ -1248,32 +1248,22 @@ export default function AdminPage() {
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
             <div className="card-header" style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📊 ตารางสรุปการส่งงาน</h2>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                className="form-input"
+                style={{ padding: '6px 12px', width: 'auto', minWidth: '180px', fontSize: '0.95rem', fontWeight: 600 }}
+                value={filterSummaryRoom}
+                onChange={(e) => setFilterSummaryRoom(e.target.value)}
+              >
+                <option value="">🏫 ทุกห้องเรียน ({summaryData.length} คน)</option>
                 {(() => {
                   const summaryRooms = [...new Set(summaryData.map(s => s.student.room || '').filter(Boolean))].sort();
-                  return (
-                    <>
-                      <button
-                        className={`btn btn-sm ${!filterSummaryRoom ? 'btn-primary' : 'btn-secondary'}`}
-                        onClick={() => setFilterSummaryRoom('')}
-                        style={{ padding: '4px 12px', fontSize: '0.85rem' }}
-                      >
-                        ทั้งหมด ({summaryData.length})
-                      </button>
-                      {summaryRooms.map(r => (
-                        <button
-                          key={r}
-                          className={`btn btn-sm ${filterSummaryRoom === r ? 'btn-primary' : 'btn-secondary'}`}
-                          onClick={() => setFilterSummaryRoom(r)}
-                          style={{ padding: '4px 12px', fontSize: '0.85rem' }}
-                        >
-                          ม.{r} ({summaryData.filter(s => s.student.room === r).length})
-                        </button>
-                      ))}
-                    </>
-                  );
+                  return summaryRooms.map(r => (
+                    <option key={r} value={r}>
+                      {r} ({summaryData.filter(s => s.student.room === r).length} คน)
+                    </option>
+                  ));
                 })()}
-              </div>
+              </select>
             </div>
 
             {assignments.length === 0 ? (
@@ -1286,6 +1276,7 @@ export default function AdminPage() {
                 <table className="data-table" style={{ userSelect: 'none' }}>
                   <thead>
                     <tr>
+                      <th style={{ width: '40px', textAlign: 'center' }}>ที่</th>
                       <th>รหัส</th>
                       <th>ชื่อ-สกุล</th>
                       {assignments.map((a) => (
@@ -1321,7 +1312,7 @@ export default function AdminPage() {
                       const currentRoom = row.student.room || '';
                       const prevRoom = idx > 0 ? (arr[idx - 1].student.room || '') : null;
                       const showRoomHeader = !filterSummaryRoom && prevRoom !== null && currentRoom !== prevRoom;
-                      const totalCols = assignments.length + 9;
+                      const totalCols = assignments.length + 10;
                       const submittedCount = Object.values(row.submissions).filter((v) => v.submitted).length;
                       let presentCount = 0;
                       let leaveCount = 0;
@@ -1369,18 +1360,19 @@ export default function AdminPage() {
                           {showRoomHeader && (
                             <tr>
                               <td colSpan={totalCols} style={{ background: 'linear-gradient(135deg, #e3f2fd, #e8eaf6)', fontWeight: 700, fontSize: '0.95rem', padding: '10px 16px', color: '#1565c0', borderTop: '3px solid #90caf9' }}>
-                                🏫 ม.{currentRoom}
+                                🏫 {currentRoom}
                               </td>
                             </tr>
                           )}
                           {idx === 0 && !filterSummaryRoom && (
                             <tr>
                               <td colSpan={totalCols} style={{ background: 'linear-gradient(135deg, #e3f2fd, #e8eaf6)', fontWeight: 700, fontSize: '0.95rem', padding: '10px 16px', color: '#1565c0', borderTop: '3px solid #90caf9' }}>
-                                🏫 ม.{currentRoom}
+                                🏫 {currentRoom}
                               </td>
                             </tr>
                           )}
                           <tr>
+                          <td style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{idx + 1}</td>
                           <td style={{ fontFamily: 'var(--font-en)', fontWeight: 600 }}>{row.student.id}</td>
                           <td>{row.student.name}</td>
                           {assignments.map((a) => {
