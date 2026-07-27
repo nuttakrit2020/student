@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getSubmissionSummary, getSettings } from '@/lib/data';
+import { getSubmissionSummary, getSettings, getSubjects } from '@/lib/data';
 
 export async function POST(request) {
   try {
-    const { adminKey } = await request.json();
+    const { adminKey, subjectId } = await request.json();
 
     if (adminKey !== 'admin2569') {
       return NextResponse.json(
@@ -12,9 +12,10 @@ export async function POST(request) {
       );
     }
 
-    const summary = await getSubmissionSummary();
+    const summary = await getSubmissionSummary(subjectId);
     const settings = await getSettings();
-    return NextResponse.json({ ...summary, settings });
+    const subjects = await getSubjects();
+    return NextResponse.json({ ...summary, settings, subjects });
   } catch (error) {
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาด' },

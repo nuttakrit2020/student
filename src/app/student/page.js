@@ -159,7 +159,7 @@ const CAMERA_FILTERS = [
   { name: '👽 มนุษย์ต่างดาว', value: 'saturate(3) hue-rotate(90deg)' },
 ];
 
-function AttendanceCheckModal({ student, settings, onClose, onSuccess }) {
+function AttendanceCheckModal({ student, settings, subjectId, onClose, onSuccess }) {
   const [step, setStep] = useState('map'); // 'map' or 'camera'
   const [selectedFilter, setSelectedFilter] = useState('none');
   const [loading, setLoading] = useState(false);
@@ -239,6 +239,7 @@ function AttendanceCheckModal({ student, settings, onClose, onSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           studentId: student.id, 
+          subjectId,
           lat: gpsData.lat, 
           lng: gpsData.lng, 
           photo, 
@@ -360,7 +361,7 @@ function AttendanceCheckModal({ student, settings, onClose, onSuccess }) {
   );
 }
 
-function LeaveRequestModal({ student, onClose, onSuccess }) {
+function LeaveRequestModal({ student, subjectId, onClose, onSuccess }) {
   const todayStr = new Date().toLocaleDateString('sv').split('T')[0];
   const [leaveDate, setLeaveDate] = useState(todayStr);
   const [reason, setReason] = useState('');
@@ -377,6 +378,7 @@ function LeaveRequestModal({ student, onClose, onSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           studentId: student.id, 
+          subjectId,
           type: 'leave',
           reason: reason,
           timestamp: new Date(leaveDate + 'T08:00:00.000Z').toISOString() 
@@ -579,6 +581,8 @@ export default function StudentPage() {
   const [submissions, setSubmissions] = useState([]);
   const [attendances, setAttendances] = useState([]);
   const [settings, setSettings] = useState({ subjectName: '', className: '', classSchedules: {} });
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [loading, setLoading] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
@@ -793,6 +797,19 @@ export default function StudentPage() {
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-secondary)', padding: '4px 8px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <span style={{ fontSize: '1.2rem' }}>📚</span>
+              <select 
+                className="form-input" 
+                style={{ flex: 1, border: 'none', background: 'transparent', padding: '4px', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}
+                value={selectedSubject}
+                onChange={(e) => setSelectedSubject(e.target.value)}
+              >
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.className})</option>
+                ))}
+              </select>
+            </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={handleCheckInClick}>
                 📍 เช็คชื่อ
@@ -1002,6 +1019,7 @@ export default function StudentPage() {
           <AttendanceCheckModal
             student={student}
             settings={settings}
+            subjectId={selectedSubject}
             onClose={() => setShowAttendanceModal(false)}
             onSuccess={(msg) => {
               setShowAttendanceModal(false);
@@ -1014,6 +1032,7 @@ export default function StudentPage() {
         {showLeaveModal && (
           <LeaveRequestModal
             student={student}
+            subjectId={selectedSubject}
             onClose={() => setShowLeaveModal(false)}
             onSuccess={(msg) => {
               setShowLeaveModal(false);

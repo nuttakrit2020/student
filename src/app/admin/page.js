@@ -16,7 +16,7 @@ function Toast({ message, type, onClose }) {
   );
 }
 
-function AssignmentModal({ adminKey, assignment, onClose, onSuccess }) {
+function AssignmentModal({ adminKey, subjectId, assignment, onClose, onSuccess }) {
   const isEditing = !!assignment;
   const [title, setTitle] = useState(assignment?.title || '');
   const [description, setDescription] = useState(assignment?.description || '');
@@ -33,7 +33,7 @@ function AssignmentModal({ adminKey, assignment, onClose, onSuccess }) {
     try {
       const method = isEditing ? 'PATCH' : 'POST';
       const bodyData = { 
-        title, description, deadline, maxScore: Number(maxScore), worksheetUrl, adminKey 
+        title, description, deadline, maxScore: Number(maxScore), worksheetUrl, adminKey, subjectId 
       };
       if (isEditing) {
         bodyData.id = assignment.id;
@@ -362,6 +362,8 @@ export default function AdminPage() {
   const [attendances, setAttendances] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adminKey, setAdminKey] = useState('');
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [subjectName, setSubjectName] = useState('');
   const [className, setClassName] = useState('');
@@ -413,45 +415,62 @@ export default function AdminPage() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const fetchData = useCallback(async (key) => {
+  const fetchData = useCallback(async (key, overrideSubjectId = null) => {
     try {
+      const currentSubId = overrideSubjectId || selectedSubject;
       const res = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminKey: key }),
+        body: JSON.stringify({ adminKey: key, subjectId: currentSubId }),
       });
 
       if (res.ok) {
         const result = await res.json();
         setData(result);
-        if (result.settings) {
-          setSubjectName(result.settings.subjectName || '');
-          setClassName(result.settings.className || '');
-          setTargetLat(result.settings.targetLat || null);
-          setTargetLng(result.settings.targetLng || null);
-          setTargetRoomName(result.settings.targetRoomName || '');
-          setQrCode(result.settings.qrCode || '');
-          setAdminAvatarUrl(result.settings.adminAvatarUrl || '');
-          if (result.settings.classSchedules) {
-            setClassSchedules(result.settings.classSchedules);
+
+        if (result.subjects) {
+          setSubjects(result.subjects);
+          if (!currentSubId && result.subjects.length > 0) {
+            setSelectedSubject(result.subjects[0].id);
+            // Fetch again with the first subject
+            return fetchData(key, result.subjects[0].id);
           }
         }
+
+        if (result.settings) {
+          setQrCode(result.settings.qrCode || '');
+          setAdminAvatarUrl(result.settings.adminAvatarUrl || '');
+        }
+
+        // Set subject specific settings
+        if (result.subjects && currentSubId) {
+          const sub = result.subjects.find(s => s.id === currentSubId);
+          if (sub) {
+            setSubjectName(sub.name || '');
+            setClassName(sub.className || '');
+            setTargetLat(sub.targetLat || null);
+            setTargetLng(sub.targetLng || null);
+            setTargetRoomName(sub.targetRoomName || '');
+            setClassSchedules(sub.classSchedules || {});
+          }
+        }
+
       } else {
         router.push('/');
       }
       
       // Fetch attendances
-      const attRes = await fetch(`/api/attendance?adminKey=${key}`);
+      const attRes = await fetch(`/api/attendance?adminKey=${key}&subjectId=${currentSubId || ''}`);
       if (attRes.ok) {
         const attResult = await attRes.json();
         setAttendances(attResult);
       }
     } catch (err) {
       console.error('Error loading admin data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
+      } finally {
+        setLoading(false);
+      }
+    }, [router, selectedSubject]);
 
   useEffect(() => {
     const key = sessionStorage.getItem('adminKey');
@@ -633,6 +652,7 @@ export default function AdminPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               adminKey,
+              subjectId: selectedSubject,
               adminAvatarUrl: base64Image
             })
           });
@@ -850,7 +870,7 @@ export default function AdminPage() {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminKey, targetLat: null, targetLng: null, targetRoomName: null })
+        body: JSON.stringify({ adminKey, subjectId: selectedSubject, targetLat: null, targetLng: null, targetRoomName: null })
       });
       if (res.ok) {
         setTargetLat(null);
@@ -884,7 +904,7 @@ export default function AdminPage() {
           const res = await fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminKey, targetLat: lat, targetLng: lng, targetRoomName: roomName })
+            body: JSON.stringify({ adminKey, subjectId: selectedSubject, targetLat: lat, targetLng: lng, targetRoomName: roomName })
           });
           if (res.ok) {
             setTargetLat(lat);
@@ -2066,8 +2086,35 @@ export default function AdminPage() {
 
         {activeTab === 'settings' && (
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
-            <div className="card-header" style={{ marginBottom: '16px' }}>
+            <div className="card-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>⚙️ ตั้งค่าระบบ</h2>
+              <button 
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  const name = prompt('กรุณากรอกชื่อวิชาใหม่ (เช่น คณิตศาสตร์)');
+                  if (!name) return;
+                  const cName = prompt('กรุณากรอกชื่อชั้นเรียน (เช่น ม.4/1)');
+                  if (!cName) return;
+                  
+                  // call API to create subject
+                  fetch('/api/subjects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminKey, name, className: cName })
+                  })
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.subject) {
+                      addToast('เพิ่มวิชาเรียบร้อยแล้ว');
+                      fetchData(adminKey, data.subject.id);
+                    } else {
+                      addToast(data.error || 'ไม่สามารถเพิ่มวิชาได้', 'error');
+                    }
+                  });
+                }}
+              >
+                ➕ เพิ่มรายวิชาใหม่
+              </button>
             </div>
             <div className="card" style={{ maxWidth: '600px' }}>
               <div className="form-group">
@@ -2121,7 +2168,7 @@ export default function AdminPage() {
                     const res = await fetch('/api/settings', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ subjectName, className, adminKey, qrCode })
+                      body: JSON.stringify({ subjectId: selectedSubject, subjectName, className, adminKey, qrCode })
                     });
                     if (res.ok) addToast('บันทึกการตั้งค่าสำเร็จ');
                     else addToast('เกิดข้อผิดพลาด', 'error');
@@ -2142,6 +2189,7 @@ export default function AdminPage() {
         {(showAddModal || editAssignment) && (
           <AssignmentModal
             adminKey={adminKey}
+            subjectId={selectedSubject}
             assignment={editAssignment}
             onClose={() => {
               setShowAddModal(false);

@@ -176,89 +176,6 @@ export async function bulkDeleteStudents(ids) {
   return true;
 }
 
-// ==================== SUBJECTS ====================
-
-export async function getSubjects() {
-  if (db) {
-    const snapshot = await getDocs(collection(db, 'subjects'));
-    return snapshot.docs.map(d => d.data());
-  }
-  return readJSON('subjects.json');
-}
-
-export async function getSubjectById(id) {
-  if (db) {
-    const d = await getDoc(doc(db, 'subjects', id));
-    return d.exists() ? d.data() : null;
-  }
-  const subjects = await getSubjects();
-  return subjects.find((s) => s.id === id) || null;
-}
-
-export async function addSubject(subject) {
-  const subjects = await getSubjects();
-  const newSubject = {
-    id: `sub-${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    ...subject,
-  };
-
-  if (db) {
-    await setDoc(doc(db, 'subjects', newSubject.id), newSubject);
-    return newSubject;
-  }
-
-  subjects.push(newSubject);
-  writeJSON('subjects.json', subjects);
-  return newSubject;
-}
-
-export async function updateSubject(id, updates) {
-  if (db) {
-    const docRef = doc(db, 'subjects', id);
-    const d = await getDoc(docRef);
-    if (!d.exists()) return null;
-    const newData = { ...d.data(), ...updates };
-    await updateDoc(docRef, updates);
-    return newData;
-  }
-
-  const subjects = await getSubjects();
-  const index = subjects.findIndex((s) => s.id === id);
-  if (index === -1) return null;
-  subjects[index] = { ...subjects[index], ...updates };
-  writeJSON('subjects.json', subjects);
-  return subjects[index];
-}
-
-export async function deleteSubject(id) {
-  if (db) {
-    await deleteDoc(doc(db, 'subjects', id));
-    return true;
-  }
-  let subjects = await getSubjects();
-  subjects = subjects.filter((s) => s.id !== id);
-  writeJSON('subjects.json', subjects);
-  return true;
-}
-
-export async function ensureDefaultSubject() {
-  const subjects = await getSubjects();
-  if (subjects.length > 0) return subjects[0];
-  
-  // Create default from old settings
-  const settings = await getSettings();
-  const defaultSub = {
-    name: settings.subjectName || 'รายวิชาเริ่มต้น',
-    className: settings.className || '',
-    classSchedules: settings.classSchedules || {},
-    targetLat: settings.targetLat || null,
-    targetLng: settings.targetLng || null,
-    targetRoomName: settings.targetRoomName || '',
-  };
-  return await addSubject(defaultSub);
-}
-
 // ==================== SETTINGS ====================
 
 export async function getSettings() {
@@ -290,14 +207,12 @@ export async function updateSettings(updates) {
 
 // ==================== ASSIGNMENTS ====================
 
-export async function getAssignments(subjectId = null) {
+export async function getAssignments() {
   if (db) {
     const snapshot = await getDocs(collection(db, 'assignments'));
-    const data = snapshot.docs.map(d => d.data());
-    return subjectId ? data.filter(a => !a.subjectId || a.subjectId === subjectId) : data;
+    return snapshot.docs.map(d => d.data());
   }
-  const data = readJSON('assignments.json');
-  return subjectId ? data.filter(a => !a.subjectId || a.subjectId === subjectId) : data;
+  return readJSON('assignments.json');
 }
 
 export async function getAssignmentById(id) {
@@ -372,18 +287,16 @@ export async function deleteAssignment(id) {
 
 // ==================== SUBMISSIONS ====================
 
-export async function getSubmissions(subjectId = null) {
+export async function getSubmissions() {
   if (db) {
     const snapshot = await getDocs(collection(db, 'submissions'));
-    const data = snapshot.docs.map(d => d.data());
-    return subjectId ? data.filter(s => !s.subjectId || s.subjectId === subjectId) : data;
+    return snapshot.docs.map(d => d.data());
   }
-  const data = readJSON('submissions.json');
-  return subjectId ? data.filter(s => !s.subjectId || s.subjectId === subjectId) : data;
+  return readJSON('submissions.json');
 }
 
-export async function getSubmissionsByStudent(studentId, subjectId = null) {
-  const submissions = await getSubmissions(subjectId);
+export async function getSubmissionsByStudent(studentId) {
+  const submissions = await getSubmissions();
   return submissions.filter((s) => s.studentId === studentId);
 }
 
@@ -401,7 +314,7 @@ export async function getSubmission(studentId, assignmentId) {
   );
 }
 
-export async function markSubmission(studentId, assignmentId, submitted, score = null, subjectId = null) {
+export async function markSubmission(studentId, assignmentId, submitted, score = null) {
   const submissionId = `${studentId}_${assignmentId}`;
   
   if (db) {
@@ -410,7 +323,6 @@ export async function markSubmission(studentId, assignmentId, submitted, score =
       const data = {
         studentId,
         assignmentId,
-        subjectId,
         submitted: submitted,
         score: score,
         submittedAt: new Date().toISOString(),
@@ -431,7 +343,6 @@ export async function markSubmission(studentId, assignmentId, submitted, score =
     submissions.push({
       studentId,
       assignmentId,
-      subjectId,
       submitted: submitted,
       score: score,
       submittedAt: new Date().toISOString(),
@@ -444,10 +355,10 @@ export async function markSubmission(studentId, assignmentId, submitted, score =
 
 // ==================== SUMMARY ====================
 
-export async function getSubmissionSummary(subjectId = null) {
+export async function getSubmissionSummary() {
   const students = await getStudents();
-  const assignments = await getAssignments(subjectId);
-  const submissions = await getSubmissions(subjectId);
+  const assignments = await getAssignments();
+  const submissions = await getSubmissions();
 
   const summary = students.map((student) => {
     const studentSubmissions = {};
@@ -470,14 +381,12 @@ export async function getSubmissionSummary(subjectId = null) {
 }
 
 // ==================== ATTENDANCE ====================
-export async function getAttendances(subjectId = null) {
+export async function getAttendances() {
   if (db) {
     const snapshot = await getDocs(collection(db, 'attendances'));
-    const data = snapshot.docs.map(d => d.data());
-    return subjectId ? data.filter(a => !a.subjectId || a.subjectId === subjectId) : data;
+    return snapshot.docs.map(d => d.data());
   }
-  const data = readJSON('attendances.json');
-  return subjectId ? data.filter(a => !a.subjectId || a.subjectId === subjectId) : data;
+  return readJSON('attendances.json');
 }
 
 export async function addAttendance(attendance) {

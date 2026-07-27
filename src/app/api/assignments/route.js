@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getAssignments, addAssignment, deleteAssignment, updateAssignment } from '@/lib/data';
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const assignments = await getAssignments();
+    const { searchParams } = new URL(request.url);
+    const subjectId = searchParams.get('subjectId');
+    const assignments = await getAssignments(subjectId);
     return NextResponse.json({ assignments });
   } catch (error) {
     return NextResponse.json(
@@ -16,7 +18,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { title, description, deadline, maxScore, worksheetUrl, adminKey } = body;
+    const { title, description, deadline, maxScore, worksheetUrl, adminKey, subjectId } = body;
 
     if (adminKey !== 'admin2569') {
       return NextResponse.json(
@@ -25,9 +27,9 @@ export async function POST(request) {
       );
     }
 
-    if (!title) {
+    if (!title || !subjectId) {
       return NextResponse.json(
-        { error: 'กรุณาระบุชื่องาน' },
+        { error: 'กรุณาระบุชื่องานและวิชา' },
         { status: 400 }
       );
     }
@@ -38,6 +40,7 @@ export async function POST(request) {
       deadline: deadline || '',
       maxScore: maxScore || 10,
       worksheetUrl: worksheetUrl || '',
+      subjectId,
     });
 
     return NextResponse.json({ assignment: newAssignment }, { status: 201 });

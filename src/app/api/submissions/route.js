@@ -5,6 +5,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId');
+    const subjectId = searchParams.get('subjectId');
 
     if (!studentId) {
       return NextResponse.json(
@@ -13,7 +14,7 @@ export async function GET(request) {
       );
     }
 
-    const submissions = await getSubmissionsByStudent(studentId);
+    const submissions = await getSubmissionsByStudent(studentId, subjectId);
     return NextResponse.json({ submissions });
   } catch (error) {
     return NextResponse.json(
@@ -26,7 +27,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { studentId, assignmentId, submitted, score, adminKey } = body;
+    const { studentId, assignmentId, submitted, score, adminKey, subjectId } = body;
 
     if (adminKey !== 'admin2569') {
       return NextResponse.json(
@@ -42,7 +43,7 @@ export async function POST(request) {
       );
     }
 
-    await markSubmission(studentId, assignmentId, submitted, score);
+    await markSubmission(studentId, assignmentId, submitted, score, subjectId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

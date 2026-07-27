@@ -17,16 +17,18 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
   return Math.round(R * c);
 }
+
 export async function POST(request) {
   try {
     const data = await request.json();
-    const { studentId, lat, lng, photo, timestamp, type, reason, adminKey } = data;
+    const { studentId, subjectId, lat, lng, photo, timestamp, type, reason, adminKey } = data;
     
     // Admin can create manual records
     if (adminKey === 'admin2569') {
       const attendance = {
         id: crypto.randomUUID(),
         studentId,
+        subjectId,
         type: type || 'present',
         reason: reason || '',
         lat: lat || null,
@@ -42,7 +44,7 @@ export async function POST(request) {
       return NextResponse.json(newAttendance);
     }
     
-    if (!studentId || !timestamp) {
+    if (!studentId || !timestamp || !subjectId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -57,9 +59,9 @@ export async function POST(request) {
 
     if (!isLeave) {
       // Calculate distance if target is set
-      const settings = await getSettings();
-      if (settings && settings.targetLat && settings.targetLng && lat && lng) {
-        distance = calculateDistance(settings.targetLat, settings.targetLng, lat, lng);
+      const subject = await getSubjectById(subjectId);
+      if (subject && subject.targetLat && subject.targetLng && lat && lng) {
+        distance = calculateDistance(subject.targetLat, subject.targetLng, lat, lng);
         if (distance !== null) {
           isOk = distance <= 8;
         }
@@ -69,6 +71,7 @@ export async function POST(request) {
     const attendance = {
       id: crypto.randomUUID(),
       studentId,
+      subjectId,
       type: type || 'present', // 'present' or 'leave'
       reason: reason || '',
       lat: lat || null,
@@ -94,33 +97,32 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const adminKey = searchParams.get('adminKey');
     const studentId = searchParams.get('studentId');
+    const subjectId = searchParams.get('subjectId');
 
     // Simple security check (use real env var checking in production)
     if (!studentId && adminKey !== 'admin2569') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    let attendances = await getAttendances();
+    const attendances = await getAttendances(subjectId);
     
     if (studentId) {
-      attendances = attendances.filter(a => a.studentId === studentId);
+      const studentAtt = attendances.filter(a => a.studentId === studentId);
+      return NextResponse.json(studentAtt);
     }
-    
-    // Sort by most recent first
-    attendances.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     return NextResponse.json(attendances);
   } catch (error) {
     console.error('Error fetching attendances:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch attendance' }, { status: 500 });
   }
 }
 
 export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const adminKey = searchParams.get('adminKey');
     const id = searchParams.get('id');
+    const adminKey = searchParams.get('adminKey');
 
     if (adminKey !== 'admin2569') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
@@ -134,7 +136,7 @@ export async function DELETE(request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting attendance:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to delete attendance' }, { status: 500 });
   }
 }
 
@@ -153,13 +155,13 @@ export async function PUT(request) {
 
     const updated = await updateAttendance(id, updates);
     if (!updated) {
-      return NextResponse.json({ error: 'Attendance not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Attendance record not found' }, { status: 404 });
     }
     
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Error updating attendance:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update attendance' }, { status: 500 });
   }
 }
 
