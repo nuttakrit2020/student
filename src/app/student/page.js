@@ -1,7 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
+const MySwal = withReactContent(Swal);
 
 function Toast({ message, type, onClose }) {
   useEffect(() => {
@@ -90,10 +94,10 @@ function EditProfileModal({ student, onClose, onSuccess }) {
         const { student: updated } = await res.json();
         onSuccess(updated);
       } else {
-        alert('เกิดข้อผิดพลาดในการบันทึก');
+        MySwal.fire({ text: 'เกิดข้อผิดพลาดในการบันทึก', icon: "error" });
       }
     } catch (err) {
-      alert('ไม่สามารถอัปเดตโปรไฟล์ได้');
+      MySwal.fire({ text: 'ไม่สามารถอัปเดตโปรไฟล์ได้', icon: "error" });
     } finally {
       setSaving(false);
     }
@@ -205,7 +209,7 @@ function AttendanceCheckModal({ student, settings, subjectId, onClose, onSuccess
         })
         .catch(err => {
           console.error(err);
-          alert('ไม่สามารถเข้าถึงกล้องได้ หากคุณใช้งานผ่านแอป LINE กรุณากดเมนูมุมขวาบน ⋯ หรือมุมล่างขวา แล้วเลือก "เปิดด้วยเบราว์เซอร์เริ่มต้น" (Open in external browser)');
+          MySwal.fire({ text: 'ไม่สามารถเข้าถึงกล้องได้ หากคุณใช้งานผ่านแอป LINE กรุณากดเมนูมุมขวาบน ⋯ หรือมุมล่างขวา แล้วเลือก "เปิดด้วยเบราว์เซอร์เริ่มต้น" (Open in external browser)', icon: "error" });
         });
     } else {
       // Stop camera if going back
@@ -218,7 +222,7 @@ function AttendanceCheckModal({ student, settings, subjectId, onClose, onSuccess
   }, [step]);
 
   const handleCapture = async () => {
-    if (!gpsData) return alert('กำลังรอพิกัด GPS... หากรอนานเกินไป กรุณาตรวจสอบการอนุญาต Location');
+    if (!gpsData) return MySwal.fire({ text: 'กำลังรอพิกัด GPS... หากรอนานเกินไป กรุณาตรวจสอบการอนุญาต Location', icon: "error" });
     setLoading(true);
     try {
       const canvas = document.createElement('canvas');
@@ -250,10 +254,10 @@ function AttendanceCheckModal({ student, settings, subjectId, onClose, onSuccess
       if (res.ok) {
         onSuccess('เช็คชื่อและบันทึกพิกัดสำเร็จแล้ว!');
       } else {
-        alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        MySwal.fire({ text: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', icon: "error" });
       }
     } catch (err) {
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+      MySwal.fire({ text: 'เกิดข้อผิดพลาดในการเชื่อมต่อ', icon: "error" });
     } finally {
       setLoading(false);
     }
@@ -369,8 +373,8 @@ function LeaveRequestModal({ student, subjectId, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!reason.trim()) return alert('กรุณาระบุเหตุผลการลา');
-    if (!leaveDate) return alert('กรุณาเลือกวันที่ต้องการลา');
+    if (!reason.trim()) return MySwal.fire({ text: 'กรุณาระบุเหตุผลการลา', icon: "error" });
+    if (!leaveDate) return MySwal.fire({ text: 'กรุณาเลือกวันที่ต้องการลา', icon: "error" });
     setLoading(true);
     try {
       const res = await fetch('/api/attendance', {
@@ -387,10 +391,10 @@ function LeaveRequestModal({ student, subjectId, onClose, onSuccess }) {
       if (res.ok) {
         onSuccess('ส่งคำร้องขอลาเรียนสำเร็จแล้ว');
       } else {
-        alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+        MySwal.fire({ text: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', icon: "error" });
       }
     } catch (err) {
-      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+      MySwal.fire({ text: 'เกิดข้อผิดพลาดในการเชื่อมต่อ', icon: "error" });
     } finally {
       setLoading(false);
     }

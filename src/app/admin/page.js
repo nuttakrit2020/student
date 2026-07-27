@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 function Toast({ message, type, onClose }) {
@@ -674,6 +674,49 @@ export default function AdminPage() {
     }
   };
 
+  const showAttendanceEditPopup = async (student, dateStr, att) => {
+    const defaultReason = att?.type === 'leave' ? att.reason : '';
+    const res = await MySwal.fire({
+      title: '✏️ แก้ไขการเช็คชื่อ',
+      html: `
+        <div style="text-align: left; font-size: 1rem; line-height: 1.5; margin-bottom: 16px;">
+          <p><strong>นักเรียน:</strong> ${student.name} (${student.nickname || '-'})</p>
+          <p><strong>วันที่:</strong> ${dateStr}</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button id="btn-present" class="swal2-confirm swal2-styled" style="background: #e6f4ea; color: #137333; width: 100%; text-align: left; justify-content: flex-start; padding: 12px 20px;">🟢 มาเรียน (ปกติ)</button>
+          
+          <div style="background: #fff9c4; border: 1px solid #b08d00; border-radius: 8px; padding: 12px; margin-top: 8px;">
+            <div style="color: #b08d00; font-weight: 600; margin-bottom: 8px; text-align: left;">🟡 ลาเรียน</div>
+            <input type="text" id="leave-reason-input" class="swal2-input" placeholder="เหตุผลการลา..." value="${defaultReason}" style="width: 100%; box-sizing: border-box; margin: 0 0 8px 0; font-size: 0.95rem;">
+            <button id="btn-leave" class="swal2-confirm swal2-styled" style="background: #f39c12; width: 100%; margin: 0; padding: 10px;">บันทึกสถานะลา</button>
+          </div>
+
+          <button id="btn-absent" class="swal2-confirm swal2-styled" style="background: #fce8e6; color: #d93025; width: 100%; text-align: left; justify-content: flex-start; padding: 12px 20px; margin-top: 8px;">🔴 ขาดเรียน (ลบข้อมูล)</button>
+        </div>
+      `,
+      showConfirmButton: false,
+      showCancelButton: true,
+      cancelButtonText: 'ยกเลิก',
+      didOpen: () => {
+        const popup = MySwal.getPopup();
+        popup.querySelector('#btn-present').addEventListener('click', () => {
+          handleEditAttendance(student.id, dateStr, 'present');
+          MySwal.close();
+        });
+        popup.querySelector('#btn-leave').addEventListener('click', () => {
+          const r = popup.querySelector('#leave-reason-input').value;
+          handleEditAttendance(student.id, dateStr, 'leave', r);
+          MySwal.close();
+        });
+        popup.querySelector('#btn-absent').addEventListener('click', () => {
+          handleEditAttendance(student.id, dateStr, 'absent');
+          MySwal.close();
+        });
+      }
+    });
+  };
+
   const handleEditAttendance = async (studentId, dateStr, newType, newReason = '') => {
     try {
       // dateStr is 'DD/MM/YYYY' (Thai year). Convert to YYYY-MM-DD
@@ -988,18 +1031,26 @@ export default function AdminPage() {
     return true;
   };
 
-  const students = (data.students || []).filter(s => isStudentInSubject(s.room));
-  const summaryData = (data.submissions || []).filter(s => isStudentInSubject(s.student?.room));
-  const assignments = data.assignments || [];
+    const { students, summaryData, assignments } = useMemo(() => {
+    if (!data) return { students: [], summaryData: [], assignments: [] };
+    return {
+      students: (data.students || []).filter(s => isStudentInSubject(s.room)),
+      summaryData: (data.submissions || []).filter(s => isStudentInSubject(s.student?.room)),
+      assignments: data.assignments || []
+    };
+  }, [data, className, classSchedules]);
 
   // Stats
-  const totalStudents = students.length;
-  const totalAssignments = assignments.length;
-  const totalExpected = totalStudents * totalAssignments;
-  const totalSubmitted = summaryData.reduce((acc, s) => {
-    return acc + Object.values(s.submissions).filter((v) => v.submitted).length;
-  }, 0);
-  const submitRate = totalExpected > 0 ? Math.round((totalSubmitted / totalExpected) * 100) : 0;
+  const { totalStudents, totalAssignments, totalExpected, totalSubmitted, submitRate } = useMemo(() => {
+    const tStudents = students.length;
+    const tAssignments = assignments.length;
+    const tExpected = tStudents * tAssignments;
+    const tSubmitted = summaryData.reduce((acc, s) => {
+      return acc + Object.values(s.submissions).filter((v) => v.submitted).length;
+    }, 0);
+    const sRate = tExpected > 0 ? Math.round((tSubmitted / tExpected) * 100) : 0;
+    return { totalStudents: tStudents, totalAssignments: tAssignments, totalExpected: tExpected, totalSubmitted: tSubmitted, submitRate: sRate };
+  }, [students, assignments, summaryData]);
 
   return (
     <div className="page-container">
@@ -1458,10 +1509,10 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'students' && (() => {
-          // unique rooms for filter
-          const rooms = [...new Set(summaryData.map(s => s.student.room || '').filter(Boolean))].sort();
+                    // unique rooms for filter
+          const rooms = useMemo(() => [...new Set(summaryData.map(s => s.student.room || '').filter(Boolean))].sort(), [summaryData]);
           // filtered students
-          const filteredStudents = filterRoom ? summaryData.filter(s => s.student.room === filterRoom) : summaryData;
+          const filteredStudents = useMemo(() => filterRoom ? summaryData.filter(s => s.student.room === filterRoom) : summaryData, [summaryData, filterRoom]);
           
           return (
             <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
@@ -1611,9 +1662,9 @@ export default function AdminPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-              <select 
-                className="form-input" 
-                style={{ width: 'auto', minWidth: '150px', padding: '8px 12px' }}
+              <select
+                  className="form-input"
+                  style={{ width: 'auto', minWidth: '180px', padding: '8px 16px', borderRadius: '20px', background: 'rgba(108, 92, 231, 0.05)', border: 'none', fontWeight: 500 }}
                 value={filterAttDate}
                 onChange={(e) => setFilterAttDate(e.target.value)}
               >
@@ -1652,7 +1703,7 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="table-responsive">
-                <table>
+                  <table className="modern-table">
                   <thead>
                     <tr>
                       <th>วัน/เวลา</th>
@@ -1837,10 +1888,10 @@ export default function AdminPage() {
                   <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{'\ud83d\udcc5'} ตารางเช็คชื่อรายสัปดาห์</h2>
                 </div>
 
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o - 1)} style={{ padding: '8px 12px' }}>{'\u25c0'} สัปดาห์ก่อน</button>
-                <span style={{ fontWeight: 600, fontSize: '1rem', minWidth: '200px', textAlign: 'center' }}>{weekLabel}</span>
-                <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o + 1)} style={{ padding: '8px 12px' }}>สัปดาห์ถัดไป {'\u25b6'}</button>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center', background: 'var(--bg-card)', padding: '12px 20px', borderRadius: '50px', boxShadow: 'var(--shadow-card)', border: '1px solid rgba(108, 92, 231, 0.1)' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o - 1)} style={{ padding: '8px 16px', borderRadius: '20px' }}>{'◀'} สัปดาห์ก่อน</button>
+                  <span style={{ fontWeight: 600, fontSize: '1.05rem', minWidth: '220px', textAlign: 'center', color: 'var(--text-primary)' }}>{weekLabel}</span>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setCalendarWeekOffset(o => o + 1)} style={{ padding: '8px 16px', borderRadius: '20px' }}>สัปดาห์ถัดไป {'▶'}</button>
                 {calendarWeekOffset !== 0 && (
                   <button className="btn btn-primary btn-sm" onClick={() => setCalendarWeekOffset(0)} style={{ padding: '8px 12px' }}>{'\ud83d\udccd'} สัปดาห์นี้</button>
                 )}
@@ -1883,7 +1934,7 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <table>
+                  <table className="modern-table">
                     <thead>
                       <tr>
                         <th style={{ position: 'sticky', left: 0, background: 'var(--bg-primary)', zIndex: 2, minWidth: '40px' }}>#</th>
@@ -1892,9 +1943,11 @@ export default function AdminPage() {
                         {weekDays.map((d, i) => {
                           const isToday = d.toLocaleDateString('th-TH') === todayStr;
                           return (
-                            <th key={i} style={{ textAlign: 'center', minWidth: '70px', background: isToday ? '#e8f0fe' : undefined, borderBottom: isToday ? '3px solid #1a73e8' : undefined }}>
-                              <div>{dayNames[i]}</div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{d.getDate()}/{d.getMonth()+1}</div>
+                            <th key={i} style={{ textAlign: 'center', minWidth: '70px' }} className={isToday ? 'today-col' : ''}>
+                              <div className={isToday ? 'today-header' : ''}>
+                                <div>{dayNames[i]}</div>
+                                <div style={{ fontSize: '0.75rem', color: isToday ? 'white' : 'var(--text-secondary)' }}>{d.getDate()}/{d.getMonth()+1}</div>
+                              </div>
                             </th>
                           );
                         })}
@@ -1957,7 +2010,7 @@ export default function AdminPage() {
                                     cellStyle.background = '#fafafa';
                                   } else if (isFuture || isToday) {
                                     scheduledCount++;
-                                    cellContent = '-';
+                                    cellContent = <span className="empty-cell" />;
                                     cellStyle.color = '#bbb';
                                     weekStatus = '⏳ รอเช็คชื่อ';
                                   } else {
@@ -2091,65 +2144,7 @@ export default function AdminPage() {
           );
         })()}
 
-        {editingCell && (
-          <div className="modal-overlay" onClick={() => setEditingCell(null)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-              <h3 style={{ marginBottom: '16px', textAlign: 'center' }}>✏️ แก้ไขการเช็คชื่อ</h3>
-              <p style={{ marginBottom: '8px' }}><strong>นักเรียน:</strong> {editingCell.student.name} ({editingCell.student.nickname})</p>
-              <p style={{ marginBottom: '16px' }}><strong>วันที่:</strong> {editingCell.dateStr}</p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <button 
-                  className="btn btn-secondary"
-                  style={{ background: '#e6f4ea', borderColor: '#137333', color: '#137333', textAlign: 'left', padding: '12px' }}
-                  onClick={() => {
-                    handleEditAttendance(editingCell.student.id, editingCell.dateStr, 'present');
-                    setEditingCell(null);
-                  }}
-                >
-                  🟢 มาเรียน (ปกติ)
-                </button>
-                
-                <div style={{ background: '#fff9c4', border: '1px solid #b08d00', borderRadius: '8px', padding: '12px' }}>
-                  <div style={{ color: '#b08d00', fontWeight: 600, marginBottom: '8px' }}>🟡 ลาเรียน</div>
-                  <input 
-                    type="text" 
-                    placeholder="เหตุผลการลา..." 
-                    className="form-input"
-                    id="leave-reason-input"
-                    defaultValue={editingCell.att?.type === 'leave' ? editingCell.att.reason : ''}
-                  />
-                  <button 
-                    className="btn btn-primary btn-sm"
-                    style={{ marginTop: '8px', width: '100%' }}
-                    onClick={() => {
-                      const r = document.getElementById('leave-reason-input').value;
-                      handleEditAttendance(editingCell.student.id, editingCell.dateStr, 'leave', r);
-                      setEditingCell(null);
-                    }}
-                  >
-                    บันทึกสถานะลา
-                  </button>
-                </div>
-
-                <button 
-                  className="btn btn-secondary"
-                  style={{ background: '#fce8e6', borderColor: '#d93025', color: '#d93025', textAlign: 'left', padding: '12px' }}
-                  onClick={() => {
-                    handleEditAttendance(editingCell.student.id, editingCell.dateStr, 'absent');
-                    setEditingCell(null);
-                  }}
-                >
-                  🔴 ขาดเรียน (ลบข้อมูล)
-                </button>
-              </div>
-
-              <div style={{ marginTop: '16px', textAlign: 'center' }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => setEditingCell(null)}>ยกเลิก</button>
-              </div>
-            </div>
-          </div>
-        )}
+        
 
         {activeTab === 'settings' && (
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
