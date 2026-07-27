@@ -2065,12 +2065,8 @@ export default function AdminPage() {
                             {day.name}
                           </td>
                           {['08:30', '09:20', '10:10', '11:00', '11:50', '12:40', '13:30', '14:20'].map(startTime => {
-                            let roomFound = null;
-                            Object.entries(classSchedules).forEach(([room, sched]) => {
-                              if (sched.day === day.id && sched.start === startTime) {
-                                roomFound = room;
-                              }
-                            });
+                            const sched = getNormalizedSchedules(classSchedules).find(s => s.day === day.id && s.start === startTime);
+                            let roomFound = sched ? sched.room : null;
                             
                             return (
                               <td key={startTime} style={{ padding: '8px', border: '1px solid #ddd', background: roomFound ? day.color : '#fff' }}>
