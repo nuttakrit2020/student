@@ -1724,7 +1724,20 @@ export default function AdminPage() {
                             <button 
                               className="btn btn-secondary btn-sm"
                               style={{ color: '#d93025', borderColor: '#d93025' }}
-                              onClick={() => handleDeleteAttendance(req.id, req.student.name, true)}
+                              onClick={async () => {
+                                if (!confirm(`ต้องการปฏิเสธคำร้องขอลาของ ${req.student.name} ใช่หรือไม่?`)) return;
+                                try {
+                                  const res = await fetch(`/api/attendance?id=${req.id}&adminKey=${adminKey}`, { method: 'DELETE' });
+                                  if (res.ok) {
+                                    addToast('ปฏิเสธการลาเรียบร้อยแล้ว');
+                                    fetchData(adminKey);
+                                  } else {
+                                    addToast('ไม่สามารถปฏิเสธการลาได้', 'error');
+                                  }
+                                } catch (err) {
+                                  addToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                                }
+                              }}
                             >ปฏิเสธ</button>
                           </div>
                         </div>
