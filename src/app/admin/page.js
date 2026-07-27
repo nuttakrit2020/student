@@ -383,6 +383,7 @@ export default function AdminPage() {
   const [editStudent, setEditStudent] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [filterRoom, setFilterRoom] = useState('');
+  const [filterSummaryRoom, setFilterSummaryRoom] = useState('');
   const [filterAttRoom, setFilterAttRoom] = useState('');
   const [filterAttDate, setFilterAttDate] = useState('today');
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
@@ -1245,8 +1246,34 @@ export default function AdminPage() {
         {/* Tab Content */}
         {activeTab === 'summary' && (
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
-            <div className="card-header" style={{ marginBottom: '16px' }}>
+            <div className="card-header" style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📊 ตารางสรุปการส่งงาน</h2>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {(() => {
+                  const summaryRooms = [...new Set(summaryData.map(s => s.student.room || '').filter(Boolean))].sort();
+                  return (
+                    <>
+                      <button
+                        className={`btn btn-sm ${!filterSummaryRoom ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setFilterSummaryRoom('')}
+                        style={{ padding: '4px 12px', fontSize: '0.85rem' }}
+                      >
+                        ทั้งหมด ({summaryData.length})
+                      </button>
+                      {summaryRooms.map(r => (
+                        <button
+                          key={r}
+                          className={`btn btn-sm ${filterSummaryRoom === r ? 'btn-primary' : 'btn-secondary'}`}
+                          onClick={() => setFilterSummaryRoom(r)}
+                          style={{ padding: '4px 12px', fontSize: '0.85rem' }}
+                        >
+                          ม.{r} ({summaryData.filter(s => s.student.room === r).length})
+                        </button>
+                      ))}
+                    </>
+                  );
+                })()}
+              </div>
             </div>
 
             {assignments.length === 0 ? (
@@ -1282,7 +1309,19 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {summaryData.map((row) => {
+                    {summaryData
+                      .filter(row => !filterSummaryRoom || row.student.room === filterSummaryRoom)
+                      .sort((a, b) => {
+                        const roomA = a.student.room || '';
+                        const roomB = b.student.room || '';
+                        if (roomA !== roomB) return roomA.localeCompare(roomB, 'th');
+                        return (a.student.id || '').localeCompare(b.student.id || '');
+                      })
+                      .map((row, idx, arr) => {
+                      const currentRoom = row.student.room || '';
+                      const prevRoom = idx > 0 ? (arr[idx - 1].student.room || '') : null;
+                      const showRoomHeader = !filterSummaryRoom && prevRoom !== null && currentRoom !== prevRoom;
+                      const totalCols = assignments.length + 9;
                       const submittedCount = Object.values(row.submissions).filter((v) => v.submitted).length;
                       let presentCount = 0;
                       let leaveCount = 0;
@@ -1326,7 +1365,22 @@ export default function AdminPage() {
                       }
                       
                       return (
-                        <tr key={row.student.id}>
+                        <React.Fragment key={row.student.id}>
+                          {showRoomHeader && (
+                            <tr>
+                              <td colSpan={totalCols} style={{ background: 'linear-gradient(135deg, #e3f2fd, #e8eaf6)', fontWeight: 700, fontSize: '0.95rem', padding: '10px 16px', color: '#1565c0', borderTop: '3px solid #90caf9' }}>
+                                🏫 ม.{currentRoom}
+                              </td>
+                            </tr>
+                          )}
+                          {idx === 0 && !filterSummaryRoom && (
+                            <tr>
+                              <td colSpan={totalCols} style={{ background: 'linear-gradient(135deg, #e3f2fd, #e8eaf6)', fontWeight: 700, fontSize: '0.95rem', padding: '10px 16px', color: '#1565c0', borderTop: '3px solid #90caf9' }}>
+                                🏫 ม.{currentRoom}
+                              </td>
+                            </tr>
+                          )}
+                          <tr>
                           <td style={{ fontFamily: 'var(--font-en)', fontWeight: 600 }}>{row.student.id}</td>
                           <td>{row.student.name}</td>
                           {assignments.map((a) => {
@@ -1427,6 +1481,7 @@ export default function AdminPage() {
                             })()}
                           </td>
                         </tr>
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
