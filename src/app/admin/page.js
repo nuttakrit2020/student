@@ -1064,7 +1064,9 @@ export default function AdminPage() {
                 }}
               >
                 {subjects.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.className})</option>
+                  <option key={s.id} value={s.id}>
+                    {s.name || s.className ? `${s.name || ''} ${s.className ? `(${s.className})` : ''}` : '(วิชาที่ไม่มีชื่อ)'}
+                  </option>
                 ))}
               </select>
             </div>
@@ -2106,35 +2108,63 @@ export default function AdminPage() {
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
             <div className="card-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>⚙️ ตั้งค่าระบบ</h2>
-              <button 
-                className="btn btn-primary btn-sm"
-                onClick={() => {
-                  const name = prompt('กรุณากรอกชื่อวิชาใหม่ (เช่น คณิตศาสตร์)');
-                  if (!name) return;
-                  const cName = prompt('กรุณากรอกชื่อชั้นเรียน (เช่น ม.4/1)');
-                  if (!cName) return;
-                  
-                  // call API to create subject
-                  fetch('/api/subjects', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ adminKey, name, className: cName })
-                  })
-                  .then(res => res.json())
-                  .then(data => {
-                    if (data.subject) {
-                      addToast('เพิ่มวิชาเรียบร้อยแล้ว');
-                      setSelectedSubject(data.subject.id);
-                      selectedSubjectRef.current = data.subject.id;
-                      fetchData(adminKey, data.subject.id);
-                    } else {
-                      addToast(data.error || 'ไม่สามารถเพิ่มวิชาได้', 'error');
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button 
+                  className="btn btn-secondary btn-sm"
+                  style={{ background: '#f8d7da', color: '#721c24', borderColor: '#f5c6cb' }}
+                  onClick={() => {
+                    if (subjects.length <= 1) {
+                      alert('ไม่สามารถลบวิชาเดียวที่มีอยู่ได้');
+                      return;
                     }
-                  });
-                }}
-              >
-                ➕ เพิ่มรายวิชาใหม่
-              </button>
+                    if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบวิชา "${subjectName}"? (ข้อมูลทั้งหมดจะถูกลบ)`)) {
+                      fetch(`/api/subjects?id=${selectedSubject}&adminKey=${adminKey}`, { method: 'DELETE' })
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.success) {
+                          addToast('ลบวิชาเรียบร้อยแล้ว', 'success');
+                          setSelectedSubject('');
+                          selectedSubjectRef.current = '';
+                          fetchData(adminKey, '');
+                        } else {
+                          addToast(data.error || 'ลบไม่สำเร็จ', 'error');
+                        }
+                      });
+                    }
+                  }}
+                >
+                  🗑️ ลบวิชานี้
+                </button>
+                <button 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    const name = prompt('กรุณากรอกชื่อวิชาใหม่ (เช่น คณิตศาสตร์)');
+                    if (!name || !name.trim()) return;
+                    const cName = prompt('กรุณากรอกชื่อชั้นเรียน (เช่น ม.4/1)');
+                    if (!cName || !cName.trim()) return;
+                    
+                    // call API to create subject
+                    fetch('/api/subjects', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ adminKey, subject: { name: name.trim(), className: cName.trim() } })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                      if (data.subject) {
+                        addToast('เพิ่มวิชาเรียบร้อยแล้ว');
+                        setSelectedSubject(data.subject.id);
+                        selectedSubjectRef.current = data.subject.id;
+                        fetchData(adminKey, data.subject.id);
+                      } else {
+                        addToast(data.error || 'ไม่สามารถเพิ่มวิชาได้', 'error');
+                      }
+                    });
+                  }}
+                >
+                  ➕ เพิ่มรายวิชาใหม่
+                </button>
+              </div>
             </div>
             <div className="card" style={{ maxWidth: '600px' }}>
               <div className="form-group">

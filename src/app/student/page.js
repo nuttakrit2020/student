@@ -829,7 +829,9 @@ export default function StudentPage() {
                 onChange={(e) => handleSubjectChange(e.target.value)}
               >
                 {subjects.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.className})</option>
+                  <option key={s.id} value={s.id}>
+                    {s.name || s.className ? `${s.name || ''} ${s.className ? `(${s.className})` : ''}` : '(วิชาที่ไม่มีชื่อ)'}
+                  </option>
                 ))}
               </select>
             </div>
