@@ -1806,6 +1806,7 @@ export default function AdminPage() {
                         const schedule = classSchedules[roomKey];
                         let presentCount = 0;
                         let scheduledCount = 0;
+                        let weekStatus = '-';
 
                         return (
                           <tr key={student.id}>
@@ -1822,7 +1823,6 @@ export default function AdminPage() {
 
                               let cellContent = '';
                               let cellStyle = { textAlign: 'center', fontSize: '1.2rem' };
-                              let weekStatus = '-';
 
                               if (isClassDay) {
                                 if (att) {
