@@ -1035,7 +1035,7 @@ export default function AdminPage() {
         </div>
 
         {/* Header */}
-        <div className="student-header">
+        <div className="student-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="student-info" style={{ cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
             <div 
               className="student-avatar" 
@@ -1054,10 +1054,26 @@ export default function AdminPage() {
             />
             <div className="student-details">
               <h2>แดชบอร์ดครู</h2>
-              <p>{subjectName || 'รายวิชาการออกแบบ 3'} {className || 'ชั้นมัธยมศึกษาปีที่ 3/1-8 เทอม 1/2569'}</p>
+              <p>{subjectName || 'กำลังโหลด...'} {className || ''}</p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <span style={{ fontSize: '1.2rem' }}>📚</span>
+              <select 
+                className="form-input" 
+                style={{ minWidth: '200px', border: 'none', background: 'transparent', padding: '0', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}
+                value={selectedSubject}
+                onChange={(e) => {
+                  setSelectedSubject(e.target.value);
+                  fetchData(adminKey, e.target.value);
+                }}
+              >
+                {subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.className})</option>
+                ))}
+              </select>
+            </div>
             <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
               🚪 ออกจากระบบ
             </button>
