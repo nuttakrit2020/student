@@ -1867,9 +1867,12 @@ export default function AdminPage() {
                   onChange={(e) => setCalendarRoom(e.target.value)}
                 >
                   <option value="">{'\ud83c\udfeb'} ดูทุกห้องเรียน</option>
-                  {rooms.map(room => (
-                    <option key={room} value={room}>{room} {classSchedules[getRoomKey(room)] ? `(${classSchedules[getRoomKey(room)].label})` : ''}</option>
-                  ))}
+                  {rooms.map(room => {
+                    const roomKey = getRoomKey(room);
+                    const roomScheds = getNormalizedSchedules(classSchedules).filter(s => s.room === roomKey || s.room === room);
+                    const label = roomScheds.map(s => s.label).join(', ');
+                    return <option key={room} value={room}>{room} {label ? `(${label})` : ''}</option>;
+                  })}
                 </select>
               </div>
 
@@ -1900,8 +1903,11 @@ export default function AdminPage() {
                     </thead>
                     <tbody>
                       {filteredStudents.map((student, idx) => {
-                        const roomKey = getRoomKey(student.room);
-                        const schedule = classSchedules[roomKey];
+                        const roomScheds = getNormalizedSchedules(classSchedules).filter(s => {
+                          const cleanedRoom = (student.room || '').replace(/^ม\.?\s*/, '').trim();
+                          return s.room === cleanedRoom || s.room === student.room;
+                        });
+                        const classDays = roomScheds.map(s => s.day);
                         let presentCount = 0;
                         let scheduledCount = 0;
                         let weekStatus = '-';
@@ -1916,7 +1922,7 @@ export default function AdminPage() {
                               const isFuture = d > now;
                               const isToday = dateStr === todayStr;
                               const jsDay = dayIndices[i]; // 1=Mon...5=Fri
-                              const isClassDay = schedule ? schedule.day === jsDay : true;
+                              const isClassDay = classDays.length > 0 ? classDays.includes(jsDay) : true;
                               const att = attMap[student.id] && attMap[student.id][dateStr];
 
                               let cellContent = '';
