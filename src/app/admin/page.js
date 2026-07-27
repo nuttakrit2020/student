@@ -2312,6 +2312,10 @@ export default function AdminPage() {
                     <label style={{ fontSize: '0.85rem' }}>สิ้นสุด (เช่น 15:10)</label>
                     <input type="time" id="new-sched-end" className="form-input" style={{ padding: '8px' }} />
                   </div>
+                  <div style={{ flex: '1', minWidth: '120px' }}>
+                    <label style={{ fontSize: '0.85rem' }}>สถานที่ (ตัวเลือก)</label>
+                    <input type="text" id="new-sched-location" className="form-input" style={{ padding: '8px' }} placeholder="เช่น ห้อง 117" />
+                  </div>
                   <button 
                     className="btn btn-primary" 
                     style={{ padding: '8px 16px', height: '38px' }}
@@ -2320,11 +2324,12 @@ export default function AdminPage() {
                       const day = parseInt(document.getElementById('new-sched-day').value);
                       const start = document.getElementById('new-sched-start').value;
                       const end = document.getElementById('new-sched-end').value;
+                      const location = document.getElementById('new-sched-location').value.trim();
                       
                       if (!room || !start || !end) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
                       
                       const dayNames = { 1: 'จ.', 2: 'อ.', 3: 'พ.', 4: 'พฤ.', 5: 'ศ.' };
-                      const label = `${dayNames[day]} ${start}-${end}`;
+                      const label = `${dayNames[day]} ${start}-${end}${location ? ` ${location}` : ''}`;
                       
                       const newScheds = [...getNormalizedSchedules(classSchedules)];
                       newScheds.push({ id: Date.now().toString() + Math.random().toString(36).substr(2, 5), room, day, start, end, label });
@@ -2333,6 +2338,7 @@ export default function AdminPage() {
                       document.getElementById('new-sched-room').value = '';
                       document.getElementById('new-sched-start').value = '';
                       document.getElementById('new-sched-end').value = '';
+                      document.getElementById('new-sched-location').value = '';
                     }}
                   >
                     + เพิ่ม
