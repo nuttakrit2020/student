@@ -1511,9 +1511,9 @@ export default function AdminPage() {
 
         {activeTab === 'students' && (() => {
                     // unique rooms for filter
-          const rooms = useMemo(() => [...new Set(summaryData.map(s => s.student.room || '').filter(Boolean))].sort(), [summaryData]);
+          const rooms = [...new Set(summaryData.map(s => s.student.room || '').filter(Boolean))].sort();
           // filtered students
-          const filteredStudents = useMemo(() => filterRoom ? summaryData.filter(s => s.student.room === filterRoom) : summaryData, [summaryData, filterRoom]);
+          const filteredStudents = filterRoom ? summaryData.filter(s => s.student.room === filterRoom) : summaryData;
           
           return (
             <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
