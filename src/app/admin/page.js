@@ -938,7 +938,57 @@ export default function AdminPage() {
 
   if (!data) return null;
 
-  const { students, assignments, submissions: summaryData } = data;
+  const isStudentInSubject = (roomStr) => {
+    if (!roomStr) return false;
+    const cleanedRoom = roomStr.replace(/^ม\.?\s*/, '').trim();
+
+    const scheduleKeys = Object.keys(classSchedules || {});
+    if (scheduleKeys.length > 0) {
+      if (classSchedules[cleanedRoom]) return true;
+      for (const key of scheduleKeys) {
+        if (cleanedRoom === key || roomStr === key) return true;
+      }
+      return false; 
+    }
+    
+    if (className) {
+      if (className.includes(cleanedRoom) || className.includes(roomStr)) return true;
+      
+      const rangeMatch = className.match(/(\d)\/(\d)(?:-(\d))/);
+      if (rangeMatch) {
+         const grade = rangeMatch[1];
+         const start = parseInt(rangeMatch[2]);
+         const end = parseInt(rangeMatch[3]);
+         const rMatch = cleanedRoom.match(/(\d)\/(\d)/);
+         if (rMatch) {
+            const rGrade = rMatch[1];
+            const rRoom = parseInt(rMatch[2]);
+            if (rGrade === grade && rRoom >= start && rRoom <= end) return true;
+         }
+      }
+      
+      const exactMatch = className.match(/(\d)\/(\d)/);
+      if (exactMatch) {
+         const grade = exactMatch[1];
+         const room = exactMatch[2];
+         if (cleanedRoom === `${grade}/${room}`) return true;
+      }
+
+      const gradeMatch = className.match(/ม\.?\s*(\d)/);
+      if (gradeMatch) {
+         const grade = gradeMatch[1];
+         if (cleanedRoom.startsWith(`${grade}/`)) return true;
+      }
+      
+      return false;
+    }
+    
+    return true;
+  };
+
+  const students = (data.students || []).filter(s => isStudentInSubject(s.room));
+  const summaryData = (data.submissions || []).filter(s => isStudentInSubject(s.student?.room));
+  const assignments = data.assignments || [];
 
   // Stats
   const totalStudents = students.length;
