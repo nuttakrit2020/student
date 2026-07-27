@@ -483,6 +483,71 @@ export default function AdminPage() {
     fetchData(key);
   }, [router, fetchData]);
 
+  const isStudentInSubject = (roomStr) => {
+    if (!roomStr) return false;
+    const cleanedRoom = roomStr.replace(/^ม\.?\s*/, '').trim();
+
+    const normalized = getNormalizedSchedules(classSchedules);
+    if (normalized.length > 0) {
+      return normalized.some(s => s.room === cleanedRoom || s.room === roomStr);
+    }
+    
+    if (className) {
+      if (className.includes(cleanedRoom) || className.includes(roomStr)) return true;
+      
+      const rangeMatch = className.match(/(\d)\/(\d)(?:-(\d))/);
+      if (rangeMatch) {
+         const grade = rangeMatch[1];
+         const start = parseInt(rangeMatch[2]);
+         const end = parseInt(rangeMatch[3]);
+         const rMatch = cleanedRoom.match(/(\d)\/(\d)/);
+         if (rMatch) {
+            const rGrade = rMatch[1];
+            const rRoom = parseInt(rMatch[2]);
+            if (rGrade === grade && rRoom >= start && rRoom <= end) return true;
+         }
+      }
+      
+      const exactMatch = className.match(/(\d)\/(\d)/);
+      if (exactMatch) {
+         const grade = exactMatch[1];
+         const room = exactMatch[2];
+         if (cleanedRoom === `${grade}/${room}`) return true;
+      }
+
+      const gradeMatch = className.match(/ม\.?\s*(\d)/);
+      if (gradeMatch) {
+         const grade = gradeMatch[1];
+         if (cleanedRoom.startsWith(`${grade}/`)) return true;
+      }
+      
+      return false;
+    }
+    
+    return true;
+  };
+
+  const { students, summaryData, assignments } = useMemo(() => {
+    if (!data) return { students: [], summaryData: [], assignments: [] };
+    return {
+      students: (data.students || []).filter(s => isStudentInSubject(s.room)),
+      summaryData: (data.submissions || []).filter(s => isStudentInSubject(s.student?.room)),
+      assignments: data.assignments || []
+    };
+  }, [data, className, classSchedules]);
+
+  // Stats
+  const { totalStudents, totalAssignments, totalExpected, totalSubmitted, submitRate } = useMemo(() => {
+    const tStudents = students.length;
+    const tAssignments = assignments.length;
+    const tExpected = tStudents * tAssignments;
+    const tSubmitted = summaryData.reduce((acc, s) => {
+      return acc + Object.values(s.submissions).filter((v) => v.submitted).length;
+    }, 0);
+    const sRate = tExpected > 0 ? Math.round((tSubmitted / tExpected) * 100) : 0;
+    return { totalStudents: tStudents, totalAssignments: tAssignments, totalExpected: tExpected, totalSubmitted: tSubmitted, submitRate: sRate };
+  }, [students, assignments, summaryData]);
+
   const handleStudentScoreChange = async (studentId, field, newScoreStr) => {
     const newScore = newScoreStr === '' ? null : Number(newScoreStr);
     
@@ -988,70 +1053,7 @@ export default function AdminPage() {
 
   if (!data) return null;
 
-  const isStudentInSubject = (roomStr) => {
-    if (!roomStr) return false;
-    const cleanedRoom = roomStr.replace(/^ม\.?\s*/, '').trim();
-
-    const normalized = getNormalizedSchedules(classSchedules);
-    if (normalized.length > 0) {
-      return normalized.some(s => s.room === cleanedRoom || s.room === roomStr);
-    }
-    
-    if (className) {
-      if (className.includes(cleanedRoom) || className.includes(roomStr)) return true;
-      
-      const rangeMatch = className.match(/(\d)\/(\d)(?:-(\d))/);
-      if (rangeMatch) {
-         const grade = rangeMatch[1];
-         const start = parseInt(rangeMatch[2]);
-         const end = parseInt(rangeMatch[3]);
-         const rMatch = cleanedRoom.match(/(\d)\/(\d)/);
-         if (rMatch) {
-            const rGrade = rMatch[1];
-            const rRoom = parseInt(rMatch[2]);
-            if (rGrade === grade && rRoom >= start && rRoom <= end) return true;
-         }
-      }
-      
-      const exactMatch = className.match(/(\d)\/(\d)/);
-      if (exactMatch) {
-         const grade = exactMatch[1];
-         const room = exactMatch[2];
-         if (cleanedRoom === `${grade}/${room}`) return true;
-      }
-
-      const gradeMatch = className.match(/ม\.?\s*(\d)/);
-      if (gradeMatch) {
-         const grade = gradeMatch[1];
-         if (cleanedRoom.startsWith(`${grade}/`)) return true;
-      }
-      
-      return false;
-    }
-    
-    return true;
-  };
-
-    const { students, summaryData, assignments } = useMemo(() => {
-    if (!data) return { students: [], summaryData: [], assignments: [] };
-    return {
-      students: (data.students || []).filter(s => isStudentInSubject(s.room)),
-      summaryData: (data.submissions || []).filter(s => isStudentInSubject(s.student?.room)),
-      assignments: data.assignments || []
-    };
-  }, [data, className, classSchedules]);
-
-  // Stats
-  const { totalStudents, totalAssignments, totalExpected, totalSubmitted, submitRate } = useMemo(() => {
-    const tStudents = students.length;
-    const tAssignments = assignments.length;
-    const tExpected = tStudents * tAssignments;
-    const tSubmitted = summaryData.reduce((acc, s) => {
-      return acc + Object.values(s.submissions).filter((v) => v.submitted).length;
-    }, 0);
-    const sRate = tExpected > 0 ? Math.round((tSubmitted / tExpected) * 100) : 0;
-    return { totalStudents: tStudents, totalAssignments: tAssignments, totalExpected: tExpected, totalSubmitted: tSubmitted, submitRate: sRate };
-  }, [students, assignments, summaryData]);
+  // isStudentInSubject and useMemo hooks moved above early returns to fix React Error #310
 
   return (
     <div className="page-container">
