@@ -105,11 +105,15 @@ export default function LoginPage() {
       <div className="login-card">
         {!showAdminLogin ? (
           <>
-            <div className="login-icon" style={{ background: 'transparent', boxShadow: 'none', width: '120px', height: '120px' }}>
-              <img src="/Nawang.webp" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <div className="login-icon" style={{ background: 'transparent', boxShadow: 'none', width: '130px', height: '130px', margin: '0 auto 16px', animation: 'gentleBounce 4s ease-in-out infinite' }}>
+              <img src="/Nawang.webp" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', dropShadow: '0 8px 16px rgba(0,0,0,0.1)' }} />
             </div>
-            <h1>{settings.subjectName || 'รายวิชาการออกแบบ 3'}</h1>
-            <p className="subtitle">{settings.className || 'ชั้นมัธยมศึกษาปีที่ 3/1-8 เทอม 1/2569'}</p>
+            <h1 style={{ fontSize: '1.8rem', background: 'linear-gradient(135deg, #7c5cfc 0%, #fc5c7c 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '8px' }}>
+              ระบบจัดการชั้นเรียน
+            </h1>
+            <p className="subtitle" style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '32px', fontWeight: '500' }}>
+              โรงเรียนนาวังศึกษาวิช
+            </p>
 
             <form onSubmit={handleStudentLogin}>
               <div className="input-group">
