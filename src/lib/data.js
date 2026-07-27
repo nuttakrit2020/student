@@ -291,13 +291,14 @@ export async function updateSettings(updates) {
 // ==================== ASSIGNMENTS ====================
 
 export async function getAssignments(subjectId = null) {
+  const defaultSubjectId = (await getSubjects())[0]?.id;
   if (db) {
     const snapshot = await getDocs(collection(db, 'assignments'));
     const data = snapshot.docs.map(d => d.data());
-    return subjectId ? data.filter(a => !a.subjectId || a.subjectId === subjectId) : data;
+    return subjectId ? data.filter(a => (a.subjectId || defaultSubjectId) === subjectId) : data;
   }
   const data = readJSON('assignments.json');
-  return subjectId ? data.filter(a => !a.subjectId || a.subjectId === subjectId) : data;
+  return subjectId ? data.filter(a => (a.subjectId || defaultSubjectId) === subjectId) : data;
 }
 
 export async function getAssignmentById(id) {
@@ -373,13 +374,14 @@ export async function deleteAssignment(id) {
 // ==================== SUBMISSIONS ====================
 
 export async function getSubmissions(subjectId = null) {
+  const defaultSubjectId = (await getSubjects())[0]?.id;
   if (db) {
     const snapshot = await getDocs(collection(db, 'submissions'));
     const data = snapshot.docs.map(d => d.data());
-    return subjectId ? data.filter(s => !s.subjectId || s.subjectId === subjectId) : data;
+    return subjectId ? data.filter(s => (s.subjectId || defaultSubjectId) === subjectId) : data;
   }
   const data = readJSON('submissions.json');
-  return subjectId ? data.filter(s => !s.subjectId || s.subjectId === subjectId) : data;
+  return subjectId ? data.filter(s => (s.subjectId || defaultSubjectId) === subjectId) : data;
 }
 
 export async function getSubmissionsByStudent(studentId, subjectId = null) {
@@ -471,13 +473,14 @@ export async function getSubmissionSummary(subjectId = null) {
 
 // ==================== ATTENDANCE ====================
 export async function getAttendances(subjectId = null) {
+  const defaultSubjectId = (await getSubjects())[0]?.id;
   if (db) {
     const snapshot = await getDocs(collection(db, 'attendances'));
     const data = snapshot.docs.map(d => d.data());
-    return subjectId ? data.filter(a => !a.subjectId || a.subjectId === subjectId) : data;
+    return subjectId ? data.filter(a => (a.subjectId || defaultSubjectId) === subjectId) : data;
   }
   const data = readJSON('attendances.json');
-  return subjectId ? data.filter(a => !a.subjectId || a.subjectId === subjectId) : data;
+  return subjectId ? data.filter(a => (a.subjectId || defaultSubjectId) === subjectId) : data;
 }
 
 export async function addAttendance(attendance) {
