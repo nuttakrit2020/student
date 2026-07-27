@@ -2151,11 +2151,11 @@ export default function AdminPage() {
                     })
                     .then(res => res.json())
                     .then(data => {
-                      if (data.subject) {
+                      if (data.id) {
                         addToast('เพิ่มวิชาเรียบร้อยแล้ว');
-                        setSelectedSubject(data.subject.id);
-                        selectedSubjectRef.current = data.subject.id;
-                        fetchData(adminKey, data.subject.id);
+                        setSelectedSubject(data.id);
+                        selectedSubjectRef.current = data.id;
+                        fetchData(adminKey, data.id);
                       } else {
                         addToast(data.error || 'ไม่สามารถเพิ่มวิชาได้', 'error');
                       }
