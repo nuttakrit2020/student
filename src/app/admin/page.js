@@ -2258,6 +2258,91 @@ export default function AdminPage() {
                 />
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>* แนะนำให้ใช้รูปที่มีขนาดไม่ใหญ่เกินไป (ไม่เกิน 1MB)</p>
               </div>
+
+              <div className="form-group" style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '24px' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>📅 ตารางเรียนของแต่ละห้อง (ใช้สำหรับการเช็คชื่อ)</h3>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  {Object.entries(classSchedules || {}).map(([room, sched]) => (
+                    <div key={room} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                      <div>
+                        <span style={{ fontWeight: 600, marginRight: '12px' }}>ห้อง {room}</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>{sched.label}</span>
+                      </div>
+                      <button 
+                        className="btn btn-secondary btn-sm" 
+                        style={{ color: 'var(--error)', padding: '4px 8px' }}
+                        onClick={() => {
+                          const newSched = { ...classSchedules };
+                          delete newSched[room];
+                          setClassSchedules(newSched);
+                        }}
+                      >
+                        ลบ
+                      </button>
+                    </div>
+                  ))}
+                  {Object.keys(classSchedules || {}).length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                      ยังไม่ได้เพิ่มตารางเรียน
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'flex-end', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
+                  <div style={{ flex: '1', minWidth: '100px' }}>
+                    <label style={{ fontSize: '0.85rem' }}>ห้อง (เช่น 4/5)</label>
+                    <input type="text" id="new-sched-room" className="form-input" style={{ padding: '8px' }} placeholder="4/5" />
+                  </div>
+                  <div style={{ flex: '1', minWidth: '120px' }}>
+                    <label style={{ fontSize: '0.85rem' }}>วัน</label>
+                    <select id="new-sched-day" className="form-input" style={{ padding: '8px' }}>
+                      <option value="1">จันทร์</option>
+                      <option value="2">อังคาร</option>
+                      <option value="3">พุธ</option>
+                      <option value="4">พฤหัสบดี</option>
+                      <option value="5">ศุกร์</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: '1', minWidth: '100px' }}>
+                    <label style={{ fontSize: '0.85rem' }}>เริ่ม (เช่น 13:30)</label>
+                    <input type="time" id="new-sched-start" className="form-input" style={{ padding: '8px' }} />
+                  </div>
+                  <div style={{ flex: '1', minWidth: '100px' }}>
+                    <label style={{ fontSize: '0.85rem' }}>สิ้นสุด (เช่น 15:10)</label>
+                    <input type="time" id="new-sched-end" className="form-input" style={{ padding: '8px' }} />
+                  </div>
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ padding: '8px 16px', height: '38px' }}
+                    onClick={() => {
+                      const room = document.getElementById('new-sched-room').value.trim();
+                      const day = parseInt(document.getElementById('new-sched-day').value);
+                      const start = document.getElementById('new-sched-start').value;
+                      const end = document.getElementById('new-sched-end').value;
+                      
+                      if (!room || !start || !end) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+                      
+                      const dayNames = { 1: 'จ.', 2: 'อ.', 3: 'พ.', 4: 'พฤ.', 5: 'ศ.' };
+                      const label = `${dayNames[day]} ${start}-${end}`;
+                      
+                      setClassSchedules({
+                        ...(classSchedules || {}),
+                        [room]: { day, start, end, label }
+                      });
+                      
+                      document.getElementById('new-sched-room').value = '';
+                      document.getElementById('new-sched-start').value = '';
+                      document.getElementById('new-sched-end').value = '';
+                    }}
+                  >
+                    + เพิ่ม
+                  </button>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '24px' }}>
+                  * การเพิ่มตารางเรียนจะช่วยให้ระบบรู้ว่านักเรียนห้องนี้เรียนวันไหน และสามารถคำนวณการเช็คชื่อได้อย่างแม่นยำ
+                </p>
+              </div>
               <button 
                 className="btn btn-primary" 
                 style={{ width: 'auto' }}
