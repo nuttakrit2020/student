@@ -633,9 +633,73 @@ export default function StudentPage() {
       const subjectsRes = await fetch('/api/subjects');
       const subjectsList = await subjectsRes.json();
       if (Array.isArray(subjectsList) && subjectsList.length > 0) {
-        setSubjects(subjectsList);
-        if (!subjectId) {
-          subjectId = subjectsList[0].id;
+        // Filter subjects based on student room
+        const roomStr = studentData.room || '';
+        const cleanedRoom = roomStr.replace(/^ม\.?\s*/, '').trim();
+        
+        let filteredSubjects = subjectsList.filter(subject => {
+          if (!roomStr) return true;
+          
+          const classSchedules = subject.classSchedules || {};
+          let hasSchedules = false;
+          let matchSchedule = false;
+          
+          for (const [key, scheds] of Object.entries(classSchedules)) {
+            if (Array.isArray(scheds) && scheds.length > 0) {
+              hasSchedules = true;
+              if (scheds.some(s => s.room === cleanedRoom || s.room === roomStr || key === cleanedRoom || key === roomStr)) {
+                matchSchedule = true;
+                break;
+              }
+            }
+          }
+          
+          if (hasSchedules && matchSchedule) return true;
+          if (hasSchedules && !matchSchedule) return false;
+          
+          const className = subject.className || '';
+          if (className) {
+            if (className.includes(cleanedRoom) || className.includes(roomStr)) return true;
+            
+            const rangeMatch = className.match(/(\d)\/(\d)(?:-(\d))/);
+            if (rangeMatch) {
+               const grade = rangeMatch[1];
+               const start = parseInt(rangeMatch[2]);
+               const end = parseInt(rangeMatch[3]);
+               const rMatch = cleanedRoom.match(/(\d)\/(\d)/);
+               if (rMatch) {
+                  const rGrade = rMatch[1];
+                  const rRoom = parseInt(rMatch[2]);
+                  if (rGrade === grade && rRoom >= start && rRoom <= end) return true;
+               }
+            }
+            
+            const exactMatch = className.match(/(\d)\/(\d)/);
+            if (exactMatch) {
+               const grade = exactMatch[1];
+               const room = exactMatch[2];
+               if (cleanedRoom === `${grade}/${room}`) return true;
+            }
+
+            const gradeMatch = className.match(/ม\.?\s*(\d)/);
+            if (gradeMatch) {
+               const grade = gradeMatch[1];
+               if (cleanedRoom.startsWith(`${grade}/`)) return true;
+            }
+            
+            return false;
+          }
+          
+          return true; // No schedules, no className -> show to all
+        });
+        
+        if (filteredSubjects.length === 0) {
+           filteredSubjects = subjectsList; // Fallback
+        }
+
+        setSubjects(filteredSubjects);
+        if (!subjectId || !filteredSubjects.find(s => s.id === subjectId)) {
+          subjectId = filteredSubjects[0].id;
           setSelectedSubject(subjectId);
         }
       }
