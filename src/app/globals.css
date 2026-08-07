@@ -657,12 +657,35 @@ body::after {
 /* ==================== ADMIN TABLE ==================== */
 .table-wrapper, .table-responsive {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 70vh;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(108, 92, 231, 0.1);
   background: var(--bg-card);
   backdrop-filter: blur(16px);
   box-shadow: var(--shadow-card);
   margin-top: 8px;
+  position: relative;
+}
+
+/* Visible scrollbar styling */
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+  background: rgba(108, 92, 231, 0.04);
+  border-radius: 4px;
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(108, 92, 231, 0.2);
+  border-radius: 4px;
+}
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(108, 92, 231, 0.35);
+}
+.table-wrapper::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .data-table, .modern-table { 
@@ -678,10 +701,12 @@ body::after {
   font-weight: 600;
   color: var(--text-secondary);
   font-size: 0.8rem;
-  background: rgba(108, 92, 231, 0.03);
+  background: #f3f1ff;
   border-bottom: 2px solid rgba(108, 92, 231, 0.08);
   white-space: nowrap;
-  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .data-table td, .modern-table td {
@@ -725,8 +750,8 @@ body::after {
   box-shadow: 2px 0 6px rgba(0,0,0,0.06);
 }
 th.sticky-col-1, th.sticky-col-2, th.sticky-col-3 {
-  background: #f8f9fa; /* slightly off-white to match header */
-  z-index: 11; /* Header stays above body cells */
+  background: #f3f1ff;
+  z-index: 25; /* Header sticky cols above both sticky body cols and regular header */
 }
 .student-row:nth-child(even) td.sticky-col-1,
 .student-row:nth-child(even) td.sticky-col-2,
