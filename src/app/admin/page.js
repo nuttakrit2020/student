@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import * as XLSX from 'xlsx';
 
 function Toast({ message, type, onClose }) {
   useEffect(() => {
@@ -581,6 +582,111 @@ export default function AdminPage() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  // ==================== EXPORT EXCEL ====================
+  const handleExportExcel = () => {
+    if (!summaryData || summaryData.length === 0) return;
+
+    const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+
+    const rows = summaryData
+      .sort((a, b) => {
+        const roomA = a.student.room || '';
+        const roomB = b.student.room || '';
+        if (roomA !== roomB) return roomA.localeCompare(roomB, 'th');
+        return (a.student.id || '').localeCompare(b.student.id || '');
+      })
+      .map((row, idx) => {
+        // Calculate attendance
+        let presentCount = 0, leaveCount = 0, absentCount = 0;
+        const roomScheds = getNormalizedSchedules(classSchedules).filter(s => {
+          const cleanedRoom = (row.student?.room || '').replace(/^ม\.?\s*/, '').trim();
+          return s.room === cleanedRoom || s.room === row.student?.room;
+        });
+        const classDays = roomScheds.map(s => s.day);
+        if (classDays.length > 0) {
+          let d = new Date(startOfSemester);
+          while (d <= todayDate) {
+            if (classDays.includes(d.getDay())) {
+              const y = d.getFullYear();
+              const m = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              const dateStr = `${y}-${m}-${day}`;
+              const att = (data?.attendances || []).find(a => {
+                if (a.studentId !== row.student.id) return false;
+                const aDate = new Date(a.timestamp);
+                const aDateStr = `${aDate.getFullYear()}-${String(aDate.getMonth()+1).padStart(2,'0')}-${String(aDate.getDate()).padStart(2,'0')}`;
+                return a.timestamp.startsWith(dateStr) || aDateStr === dateStr;
+              });
+              if (att) {
+                if (att.status === 'present' || att.status === 'late') presentCount++;
+                else if (att.status === 'leave') leaveCount++;
+                else absentCount++;
+              } else {
+                absentCount++;
+              }
+            }
+            d.setDate(d.getDate() + 1);
+          }
+        }
+
+        const assignmentScore = Object.values(row.submissions).reduce((sum, s) => sum + (Number(s.score) || 0), 0);
+        const behaviorScore = Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1));
+        const midterm = Number(row.student.midtermScore) || 0;
+        const final_ = Number(row.student.finalScore) || 0;
+        const totalScore = assignmentScore + midterm + final_ + behaviorScore;
+
+        let grade;
+        if (totalScore < 50) grade = 0;
+        else if (totalScore < 55) grade = 1;
+        else if (totalScore < 60) grade = 1.5;
+        else if (totalScore < 65) grade = 2;
+        else if (totalScore < 70) grade = 2.5;
+        else if (totalScore < 75) grade = 3;
+        else if (totalScore < 80) grade = 3.5;
+        else grade = 4;
+
+        const rowData = {
+          'ที่': idx + 1,
+          'ห้อง': row.student.room || '',
+          'รหัส': row.student.id,
+          'ชื่อ-สกุล': row.student.name,
+        };
+
+        // Assignment scores
+        assignments.forEach(a => {
+          const sub = row.submissions[a.id];
+          rowData[a.title] = sub?.submitted ? (Number(sub.score) || 0) : '-';
+        });
+
+        rowData['กลางภาค (20)'] = midterm;
+        rowData['ปลายภาค (20)'] = final_;
+        rowData['จิตพิสัย (10)'] = behaviorScore;
+        rowData['มาเรียน'] = presentCount;
+        rowData['ลา'] = leaveCount;
+        rowData['ขาด'] = absentCount;
+        rowData['รวม (100)'] = totalScore;
+        rowData['เกรด'] = grade;
+
+        return rowData;
+      });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'สรุปคะแนน');
+
+    // Auto-width columns
+    const colWidths = Object.keys(rows[0] || {}).map(key => ({
+      wch: Math.max(key.length * 2, ...rows.map(r => String(r[key] || '').length)) + 2
+    }));
+    ws['!cols'] = colWidths;
+
+    const subjectName = data?.settings?.subjectName || 'คะแนน';
+    const fileName = `${subjectName}_สรุปคะแนน.xlsx`;
+    XLSX.writeFile(wb, fileName);
   };
 
   const handleBulkScore = async (type, idOrField, maxScore, title) => {
@@ -1248,22 +1354,31 @@ export default function AdminPage() {
           <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
             <div className="card-header" style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📊 ตารางสรุปการส่งงาน</h2>
-              <select
-                className="form-input"
-                style={{ padding: '6px 12px', width: 'auto', minWidth: '180px', fontSize: '0.95rem', fontWeight: 600 }}
-                value={filterSummaryRoom}
-                onChange={(e) => setFilterSummaryRoom(e.target.value)}
-              >
-                <option value="">🏫 ทุกห้องเรียน ({summaryData.length} คน)</option>
-                {(() => {
-                  const summaryRooms = [...new Set(summaryData.map(s => s.student.room || '').filter(Boolean))].sort();
-                  return summaryRooms.map(r => (
-                    <option key={r} value={r}>
-                      {r} ({summaryData.filter(s => s.student.room === r).length} คน)
-                    </option>
-                  ));
-                })()}
-              </select>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <select
+                  className="form-input"
+                  style={{ padding: '6px 12px', width: 'auto', minWidth: '180px', fontSize: '0.95rem', fontWeight: 600 }}
+                  value={filterSummaryRoom}
+                  onChange={(e) => setFilterSummaryRoom(e.target.value)}
+                >
+                  <option value="">🏫 ทุกห้องเรียน ({summaryData.length} คน)</option>
+                  {(() => {
+                    const summaryRooms = [...new Set(summaryData.map(s => s.student.room || '').filter(Boolean))].sort();
+                    return summaryRooms.map(r => (
+                      <option key={r} value={r}>
+                        {r} ({summaryData.filter(s => s.student.room === r).length} คน)
+                      </option>
+                    ));
+                  })()}
+                </select>
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={handleExportExcel}
+                  style={{ width: 'auto', padding: '6px 16px', fontSize: '0.9rem', whiteSpace: 'nowrap' }}
+                >
+                  📥 ส่งออก Excel
+                </button>
+              </div>
             </div>
 
             {assignments.length === 0 ? (
