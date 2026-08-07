@@ -538,6 +538,26 @@ export default function AdminPage() {
     };
   }, [data, className, classSchedules]);
 
+  const { preMidterm, postMidterm } = useMemo(() => {
+    const pre = [];
+    const post = [];
+    assignments.forEach(a => {
+      const match = a.title.match(/(\d+)\.(\d+)/);
+      if (match) {
+        const major = parseInt(match[1]);
+        const minor = parseInt(match[2]);
+        if (major > 2 || (major === 2 && minor >= 3)) {
+          post.push(a);
+        } else {
+          pre.push(a);
+        }
+      } else {
+        pre.push(a);
+      }
+    });
+    return { preMidterm: pre, postMidterm: post };
+  }, [assignments]);
+
   // Stats
   const { totalStudents, totalAssignments, totalExpected, totalSubmitted, submitRate } = useMemo(() => {
     const tStudents = students.length;
@@ -656,13 +676,20 @@ export default function AdminPage() {
           'ชื่อ-สกุล': row.student.name,
         };
 
-        // Assignment scores
-        assignments.forEach(a => {
+        // Assignment scores (Pre-midterm)
+        preMidterm.forEach(a => {
           const sub = row.submissions[a.id];
           rowData[a.title] = sub?.submitted ? (Number(sub.score) || 0) : '-';
         });
 
         rowData['กลางภาค (20)'] = midterm;
+
+        // Assignment scores (Post-midterm)
+        postMidterm.forEach(a => {
+          const sub = row.submissions[a.id];
+          rowData[a.title] = sub?.submitted ? (Number(sub.score) || 0) : '-';
+        });
+
         rowData['ปลายภาค (20)'] = final_;
         rowData['จิตพิสัย (10)'] = behaviorScore;
         rowData['มาเรียน'] = presentCount;
@@ -1394,7 +1421,7 @@ export default function AdminPage() {
                       <th className="sticky-col-1" style={{ width: '32px', minWidth: '32px', maxWidth: '32px', textAlign: 'center', padding: '10px 2px', fontSize: '0.8rem' }}>ที่</th>
                       <th className="sticky-col-2" style={{ width: '70px', minWidth: '70px', maxWidth: '70px', padding: '10px 4px', fontSize: '0.8rem' }}>รหัส</th>
                       <th className="sticky-col-3" style={{ minWidth: '120px', padding: '10px 6px', fontSize: '0.8rem' }}>ชื่อ-สกุล</th>
-                      {assignments.map((a) => (
+                      {preMidterm.map((a) => (
                         <th 
                           key={a.id} 
                           title={`${a.title}\n(คลิกเพื่อกรอกคะแนนให้ทุกคน)`} 
@@ -1405,6 +1432,17 @@ export default function AdminPage() {
                         </th>
                       ))}
                       <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'midtermScore', 20, 'สอบกลางภาค')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">กลางภาค ✏️ (20)</th>
+                      
+                      {postMidterm.map((a) => (
+                        <th 
+                          key={a.id} 
+                          title={`${a.title}\n(คลิกเพื่อกรอกคะแนนให้ทุกคน)`} 
+                          style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', background: 'var(--bg-primary)' }}
+                          onClick={() => handleBulkScore('assignment', a.id, a.maxScore || 10, a.title)}
+                        >
+                          {a.title.length > 15 ? a.title.substring(0, 15) + '...' : a.title} ✏️
+                        </th>
+                      ))}
                       <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'finalScore', 20, 'สอบปลายภาค')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">ปลายภาค ✏️ (20)</th>
                       <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'behaviorScore', 10, 'จิตพิสัย')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">จิตพิสัย ✏️ (10)</th>
                       <th style={{ background: '#e6f4ea', color: '#137333' }}>มาเรียน</th>
@@ -1490,7 +1528,7 @@ export default function AdminPage() {
                           <td className="sticky-col-1" style={{ width: '32px', minWidth: '32px', maxWidth: '32px', textAlign: 'center', padding: '6px 2px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>{idx + 1}</td>
                           <td className="sticky-col-2" style={{ width: '70px', minWidth: '70px', maxWidth: '70px', padding: '6px 4px', fontFamily: 'var(--font-en)', fontWeight: 600, fontSize: '0.8rem' }}>{row.student.id}</td>
                           <td className="sticky-col-3" style={{ minWidth: '120px', padding: '6px 6px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{row.student.name}</td>
-                          {assignments.map((a) => {
+                          {preMidterm.map((a) => {
                             const sub = row.submissions[a.id];
                             return (
                               <td
@@ -1541,6 +1579,46 @@ export default function AdminPage() {
                               style={{ width: '40px', padding: '3px 2px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid rgba(108,92,231,0.15)', borderRadius: '4px', background: 'rgba(108,92,231,0.03)', color: 'var(--text-primary)', fontWeight: 600 }}
                             />
                           </td>
+                          {postMidterm.map((a) => {
+                            const sub = row.submissions[a.id];
+                            return (
+                              <td
+                                key={a.id}
+                                title={sub?.submitted ? 'ส่งแล้ว (คลิกเพื่อสลับ)' : 'ยังไม่ส่ง (คลิกเพื่อสลับ)'}
+                                style={{ 
+                                  textAlign: 'center', 
+                                  cursor: 'pointer', 
+                                  padding: '4px 2px',
+                                  background: sub?.submitted ? 'rgba(0,184,148,0.1)' : 'rgba(225,112,85,0.08)',
+                                  borderLeft: sub?.submitted ? '3px solid #00b894' : '3px solid #e17055',
+                                }}
+                                onMouseDown={() => handleCellMouseDown(row.student.id, a.id, sub?.submitted, sub?.score)}
+                                onMouseEnter={() => handleCellMouseEnter(row.student.id, a.id, sub?.submitted, sub?.score)}
+                              >
+                                <input 
+                                  type="number" 
+                                  className="score-input"
+                                  placeholder={sub?.submitted ? '0' : '-'}
+                                  value={sub?.score ?? ''} 
+                                  onChange={(e) => handleScoreChange(row.student.id, a.id, sub?.submitted, e.target.value)} 
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{ 
+                                    width: '38px', 
+                                    padding: '3px 2px', 
+                                    fontSize: '0.85rem', 
+                                    textAlign: 'center',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    background: 'transparent',
+                                    color: sub?.submitted ? '#00b894' : '#e17055',
+                                    fontWeight: 700,
+                                    outline: 'none',
+                                  }}
+                                />
+                              </td>
+                            );
+                          })}
                           <td style={{ textAlign: 'center', padding: '4px 2px' }}>
                             <input
                               type="number"
