@@ -1276,9 +1276,9 @@ export default function AdminPage() {
                 <table className="data-table" style={{ userSelect: 'none' }}>
                   <thead>
                     <tr>
-                      <th className="sticky-col-1" style={{ width: '45px', minWidth: '45px', maxWidth: '45px', textAlign: 'center', padding: '14px 4px' }}>ที่</th>
-                      <th className="sticky-col-2" style={{ width: '80px', minWidth: '80px', maxWidth: '80px', padding: '14px 8px' }}>รหัส</th>
-                      <th className="sticky-col-3" style={{ minWidth: '150px' }}>ชื่อ-สกุล</th>
+                      <th className="sticky-col-1" style={{ width: '32px', minWidth: '32px', maxWidth: '32px', textAlign: 'center', padding: '10px 2px', fontSize: '0.8rem' }}>ที่</th>
+                      <th className="sticky-col-2" style={{ width: '70px', minWidth: '70px', maxWidth: '70px', padding: '10px 4px', fontSize: '0.8rem' }}>รหัส</th>
+                      <th className="sticky-col-3" style={{ minWidth: '120px', padding: '10px 6px', fontSize: '0.8rem' }}>ชื่อ-สกุล</th>
                       {assignments.map((a) => (
                         <th 
                           key={a.id} 
@@ -1372,45 +1372,50 @@ export default function AdminPage() {
                             </tr>
                           )}
                           <tr className="student-row">
-                          <td className="sticky-col-1" style={{ width: '45px', minWidth: '45px', maxWidth: '45px', textAlign: 'center', padding: '14px 4px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{idx + 1}</td>
-                          <td className="sticky-col-2" style={{ width: '80px', minWidth: '80px', maxWidth: '80px', padding: '14px 8px', fontFamily: 'var(--font-en)', fontWeight: 600 }}>{row.student.id}</td>
-                          <td className="sticky-col-3" style={{ minWidth: '150px' }}>{row.student.name}</td>
+                          <td className="sticky-col-1" style={{ width: '32px', minWidth: '32px', maxWidth: '32px', textAlign: 'center', padding: '6px 2px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>{idx + 1}</td>
+                          <td className="sticky-col-2" style={{ width: '70px', minWidth: '70px', maxWidth: '70px', padding: '6px 4px', fontFamily: 'var(--font-en)', fontWeight: 600, fontSize: '0.8rem' }}>{row.student.id}</td>
+                          <td className="sticky-col-3" style={{ minWidth: '120px', padding: '6px 6px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{row.student.name}</td>
                           {assignments.map((a) => {
                             const sub = row.submissions[a.id];
                             return (
                               <td
                                 key={a.id}
-                                className={sub?.submitted ? 'cell-submitted' : 'cell-not-submitted'}
-                                title={sub?.submitted ? 'ส่งแล้ว (คลิกหรือลากเพื่อสลับสถานะ)' : 'ยังไม่ส่ง (คลิกหรือลากเพื่อสลับสถานะ)'}
-                                style={{ textAlign: 'center', cursor: 'pointer', position: 'relative' }}
+                                title={sub?.submitted ? 'ส่งแล้ว (คลิกเพื่อสลับ)' : 'ยังไม่ส่ง (คลิกเพื่อสลับ)'}
+                                style={{ 
+                                  textAlign: 'center', 
+                                  cursor: 'pointer', 
+                                  padding: '4px 2px',
+                                  background: sub?.submitted ? 'rgba(0,184,148,0.1)' : 'rgba(225,112,85,0.08)',
+                                  borderLeft: sub?.submitted ? '3px solid #00b894' : '3px solid #e17055',
+                                }}
                                 onMouseDown={() => handleCellMouseDown(row.student.id, a.id, sub?.submitted, sub?.score)}
                                 onMouseEnter={() => handleCellMouseEnter(row.student.id, a.id, sub?.submitted, sub?.score)}
                               >
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                                  <span style={{ fontSize: '1.2rem' }}>{sub?.submitted ? '✅' : '❌'}</span>
-                                  <input 
-                                    type="number" 
-                                    className="score-input"
-                                    placeholder="-"
-                                    value={sub?.score ?? ''} 
-                                    onChange={(e) => handleScoreChange(row.student.id, a.id, sub?.submitted, e.target.value)} 
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    style={{ 
-                                      width: '40px', 
-                                      padding: '2px 4px', 
-                                      fontSize: '0.85rem', 
-                                      textAlign: 'center',
-                                      border: '1px solid var(--border-color)',
-                                      borderRadius: '4px',
-                                      background: 'var(--bg-primary)',
-                                      color: 'var(--text-primary)'
-                                    }}
-                                  />
-                                </div>
+                                <input 
+                                  type="number" 
+                                  className="score-input"
+                                  placeholder={sub?.submitted ? '0' : '-'}
+                                  value={sub?.score ?? ''} 
+                                  onChange={(e) => handleScoreChange(row.student.id, a.id, sub?.submitted, e.target.value)} 
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{ 
+                                    width: '38px', 
+                                    padding: '3px 2px', 
+                                    fontSize: '0.85rem', 
+                                    textAlign: 'center',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    background: 'transparent',
+                                    color: sub?.submitted ? '#00b894' : '#e17055',
+                                    fontWeight: 700,
+                                    outline: 'none',
+                                  }}
+                                />
                               </td>
                             );
                           })}
-                          <td style={{ textAlign: 'center' }}>
+                          <td style={{ textAlign: 'center', padding: '4px 2px' }}>
                             <input
                               type="number"
                               className="score-input"
@@ -1418,10 +1423,10 @@ export default function AdminPage() {
                               value={row.student.midtermScore ?? ''}
                               onChange={(e) => handleStudentScoreChange(row.student.id, 'midtermScore', e.target.value)}
                               min={0} max={20}
-                              style={{ width: '45px', padding: '2px 4px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                              style={{ width: '40px', padding: '3px 2px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid rgba(108,92,231,0.15)', borderRadius: '4px', background: 'rgba(108,92,231,0.03)', color: 'var(--text-primary)', fontWeight: 600 }}
                             />
                           </td>
-                          <td style={{ textAlign: 'center' }}>
+                          <td style={{ textAlign: 'center', padding: '4px 2px' }}>
                             <input
                               type="number"
                               className="score-input"
@@ -1429,15 +1434,15 @@ export default function AdminPage() {
                               value={row.student.finalScore ?? ''}
                               onChange={(e) => handleStudentScoreChange(row.student.id, 'finalScore', e.target.value)}
                               min={0} max={20}
-                              style={{ width: '45px', padding: '2px 4px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                              style={{ width: '40px', padding: '3px 2px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid rgba(108,92,231,0.15)', borderRadius: '4px', background: 'rgba(108,92,231,0.03)', color: 'var(--text-primary)', fontWeight: 600 }}
                             />
                           </td>
-                          <td style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                          <td style={{ textAlign: 'center', fontWeight: 600, padding: '4px 2px', fontSize: '0.85rem' }}>
                             {Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1))}
                           </td>
-                          <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#137333' }}>{presentCount}</td>
-                          <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#b06000' }}>{leaveCount}</td>
-                          <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#c5221f' }}>{absentCount}</td>
+                          <td style={{ textAlign: 'center', fontWeight: 600, color: '#137333', padding: '4px 2px', fontSize: '0.85rem' }}>{presentCount}</td>
+                          <td style={{ textAlign: 'center', fontWeight: 600, color: '#b06000', padding: '4px 2px', fontSize: '0.85rem' }}>{leaveCount}</td>
+                          <td style={{ textAlign: 'center', fontWeight: 600, color: '#c5221f', padding: '4px 2px', fontSize: '0.85rem' }}>{absentCount}</td>
                           <td style={{
                             fontFamily: 'var(--font-en)',
                             fontWeight: 700,

@@ -673,11 +673,11 @@ body::after {
 }
 
 .data-table th, .modern-table th {
-  padding: 16px 16px;
+  padding: 10px 10px;
   text-align: left;
   font-weight: 600;
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   background: rgba(108, 92, 231, 0.03);
   border-bottom: 2px solid rgba(108, 92, 231, 0.08);
   white-space: nowrap;
@@ -685,11 +685,11 @@ body::after {
 }
 
 .data-table td, .modern-table td {
-  padding: 14px 16px;
+  padding: 8px 10px;
   border-bottom: 1px solid rgba(108, 92, 231, 0.06);
   vertical-align: middle;
   color: var(--text-primary);
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 
 .modern-table tr:hover td { background: rgba(108, 92, 231, 0.02); }
@@ -697,10 +697,10 @@ body::after {
 
 /* Table UX Enhancements (Zebra, Hover, Sticky) */
 .student-row:nth-child(even) td {
-  background-color: rgba(0, 0, 0, 0.015);
+  background-color: rgba(108, 92, 231, 0.02);
 }
 .student-row:hover td {
-  background-color: rgba(108, 92, 231, 0.08) !important;
+  background-color: rgba(108, 92, 231, 0.07) !important;
 }
 
 .sticky-col-1 {
@@ -712,17 +712,17 @@ body::after {
 }
 .sticky-col-2 {
   position: sticky;
-  left: 45px; /* col 1 width (45px approx) */
+  left: 36px;
   z-index: 10;
   background: var(--bg-card);
   box-shadow: 1px 0 0 rgba(0,0,0,0.05);
 }
 .sticky-col-3 {
   position: sticky;
-  left: 125px; /* col 1 + col 2 width (45 + 80) */
+  left: 110px;
   z-index: 10;
   background: var(--bg-card);
-  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+  box-shadow: 2px 0 6px rgba(0,0,0,0.06);
 }
 th.sticky-col-1, th.sticky-col-2, th.sticky-col-3 {
   background: #f8f9fa; /* slightly off-white to match header */
