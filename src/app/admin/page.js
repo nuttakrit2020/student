@@ -429,6 +429,9 @@ export default function AdminPage() {
   const [dragTargetStatus, setDragTargetStatus] = useState(null);
 
   const [toasts, setToasts] = useState([]);
+  const [sheetData, setSheetData] = useState(null);
+  const [sheetLoading, setSheetLoading] = useState(false);
+  const [sheetError, setSheetError] = useState('');
   const router = useRouter();
   const fileInputRef = useRef(null);
   const selectedSubjectRef = useRef(selectedSubject);
@@ -1418,10 +1421,20 @@ export default function AdminPage() {
         </div>
 
         {/* Stats */}
-        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-value">{totalStudents}</div>
             <div className="stat-label">👩‍🎓 นักเรียนทั้งหมด</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value">{totalAssignments}</div>
+            <div className="stat-label">📋 จำนวนงาน (ชิ้น)</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value" style={{ color: submitPercentage >= 80 ? '#34a853' : (submitPercentage >= 50 ? '#fbbc04' : '#ea4335') }}>
+              {submitPercentage}%
+            </div>
+            <div className="stat-label">✅ อัตราการส่งงาน</div>
           </div>
         </div>
 
