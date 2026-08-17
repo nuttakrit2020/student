@@ -358,6 +358,29 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return Math.round(R * c);
 }
 
+const ScoreInput = ({ initialValue, onChange, min, max, style, placeholder }) => {
+  const [val, setVal] = useState(initialValue ?? '');
+  
+  useEffect(() => {
+    setVal(initialValue ?? '');
+  }, [initialValue]);
+
+  return (
+    <input
+      type="number"
+      className="score-input"
+      value={val}
+      onChange={e => setVal(e.target.value)}
+      onBlur={(e) => {
+        if (e.target.value !== String(initialValue ?? '')) {
+           onChange(e.target.value);
+        }
+      }}
+      min={min} max={max} style={style} placeholder={placeholder}
+    />
+  );
+};
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('summary');
   const [data, setData] = useState(null);
@@ -1630,14 +1653,12 @@ export default function AdminPage() {
                             );
                           })}
                           <td style={{ textAlign: 'center', padding: '4px 2px' }}>
-                            <input
-                              type="number"
-                              className="score-input"
-                              placeholder="-"
-                              value={row.student.midtermScore ?? ''}
-                              onChange={(e) => handleStudentScoreChange(row.student.id, 'midtermScore', e.target.value)}
+                            <ScoreInput
+                              initialValue={row.student.midtermScore}
+                              onChange={(newVal) => handleStudentScoreChange(row.student.id, 'midtermScore', newVal)}
                               min={0} max={20}
                               style={{ width: '40px', padding: '3px 2px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid rgba(108,92,231,0.15)', borderRadius: '4px', background: 'rgba(108,92,231,0.03)', color: 'var(--text-primary)', fontWeight: 600 }}
+                              placeholder="-"
                             />
                           </td>
                           {postMidterm.map((a) => {
@@ -1681,14 +1702,12 @@ export default function AdminPage() {
                             );
                           })}
                           <td style={{ textAlign: 'center', padding: '4px 2px' }}>
-                            <input
-                              type="number"
-                              className="score-input"
-                              placeholder="-"
-                              value={row.student.finalScore ?? ''}
-                              onChange={(e) => handleStudentScoreChange(row.student.id, 'finalScore', e.target.value)}
+                            <ScoreInput
+                              initialValue={row.student.finalScore}
+                              onChange={(newVal) => handleStudentScoreChange(row.student.id, 'finalScore', newVal)}
                               min={0} max={20}
                               style={{ width: '40px', padding: '3px 2px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid rgba(108,92,231,0.15)', borderRadius: '4px', background: 'rgba(108,92,231,0.03)', color: 'var(--text-primary)', fontWeight: 600 }}
+                              placeholder="-"
                             />
                           </td>
                           <td style={{ textAlign: 'center', fontWeight: 600, padding: '4px 2px', fontSize: '0.85rem' }}>
