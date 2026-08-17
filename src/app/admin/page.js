@@ -428,6 +428,7 @@ export default function AdminPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragTargetStatus, setDragTargetStatus] = useState(null);
 
+  
   const [toasts, setToasts] = useState([]);
   const [sheetData, setSheetData] = useState(null);
   const [sheetLoading, setSheetLoading] = useState(false);
@@ -660,7 +661,7 @@ export default function AdminPage() {
   }, [summaryData, classSchedules, attendances]);
 
   // Stats
-  const { totalStudents, totalAssignments, totalExpected, totalSubmitted, submitRate } = useMemo(() => {
+  const { totalStudents, totalExpected, totalSubmitted, submitRate } = useMemo(() => {
     const filteredSummaryData = filterSummaryRoom 
       ? summaryData.filter(row => row.student.room === filterSummaryRoom)
       : summaryData;
@@ -1264,6 +1265,84 @@ export default function AdminPage() {
   if (!data) return null;
 
   // isStudentInSubject and useMemo hooks moved above early returns to fix React Error #310
+  const activeSheetUrl = useMemo(() => {
+    return filterSummaryRoom && googleSheetUrls[filterSummaryRoom] 
+      ? googleSheetUrls[filterSummaryRoom] 
+      : (!filterSummaryRoom && Object.keys(googleSheetUrls).length > 0) 
+        ? (googleSheetUrls['default'] || Object.values(googleSheetUrls)[0] || '') 
+        : '';
+  }, [filterSummaryRoom, googleSheetUrls]);
+
+  useEffect(() => {
+    if (!activeSheetUrl) {
+      setSheetData(null);
+      return;
+    }
+    setSheetLoading(true);
+    setSheetError('');
+    fetch(`/api/sheet?url=${encodeURIComponent(activeSheetUrl)}`)
+      .then(res => res.json())
+      .then(resData => {
+         if (resData.error) throw new Error(resData.error);
+         setSheetData(resData.data);
+      })
+      .catch(err => {
+         console.error('Sheet fetch error:', err);
+         setSheetError(err.message);
+      })
+      .finally(() => setSheetLoading(false));
+  }, [activeSheetUrl]);
+
+  const { totalAssignments, submitPercentage } = useMemo(() => {
+    let tAssignments = 0;
+    let tSubmitted = 0;
+    
+    let students = data?.students || [];
+    if (filterSummaryRoom) {
+      students = students.filter(s => {
+         if (!s.room) return false;
+         const r = s.room.replace(/^ม\.?\s*/, '').trim();
+         return r === filterSummaryRoom;
+      });
+    }
+    const tStudents = students.length;
+
+    if (sheetData && sheetData.length > 0) {
+      const firstRow = sheetData[0];
+      const assignmentCols = Object.keys(firstRow).filter(k => k && k.trim().startsWith('งาน'));
+      tAssignments = assignmentCols.length;
+
+      students.forEach(student => {
+         const studentRow = sheetData.find(row => {
+            return Object.values(row).some(val => {
+               if (!val) return false;
+               const sVal = String(val).trim();
+               if (sVal === student.id) return true;
+               if (student.firstName && sVal.includes(student.firstName)) return true;
+               return false;
+            });
+         });
+
+         if (studentRow) {
+            assignmentCols.forEach(col => {
+               const val = studentRow[col];
+               if (val && String(val).trim() !== '0') {
+                 tSubmitted++;
+               }
+            });
+         }
+      });
+    }
+
+    const expectedTotal = tStudents * tAssignments;
+    const sPercentage = expectedTotal > 0 ? Math.round((tSubmitted / expectedTotal) * 100) : 0;
+
+    return { 
+      totalAssignments: tAssignments, 
+      submitPercentage: sPercentage 
+    };
+  }, [data?.students, filterSummaryRoom, sheetData]);
+
 
   return (
     <div className="page-container">
