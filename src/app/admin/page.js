@@ -362,6 +362,8 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('summary');
   const [data, setData] = useState(null);
   const [attendances, setAttendances] = useState([]);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [adminKey, setAdminKey] = useState('');
   const [subjects, setSubjects] = useState([]);
@@ -418,16 +420,21 @@ export default function AdminPage() {
   };
 
   const fetchData = useCallback(async (key, overrideSubjectId = null) => {
+    setIsRefreshing(true);
+    setLoadProgress(5);
     try {
       const currentSubId = overrideSubjectId || selectedSubjectRef.current;
+      setLoadProgress(15);
       const res = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminKey: key, subjectId: currentSubId }),
       });
+      setLoadProgress(45);
 
       if (res.ok) {
         const result = await res.json();
+        setLoadProgress(55);
         setData(result);
 
         if (result.subjects) {
@@ -436,7 +443,6 @@ export default function AdminPage() {
             const firstId = result.subjects[0].id;
             setSelectedSubject(firstId);
             selectedSubjectRef.current = firstId;
-            // Fetch again with the first subject
             return fetchData(key, firstId);
           }
         }
@@ -446,7 +452,6 @@ export default function AdminPage() {
           setAdminAvatarUrl(result.settings.adminAvatarUrl || '');
         }
 
-        // Set subject specific settings
         if (result.subjects && currentSubId) {
           const sub = result.subjects.find(s => s.id === currentSubId);
           if (sub) {
@@ -459,23 +464,31 @@ export default function AdminPage() {
             setGoogleSheetUrls(sub.googleSheetUrls || (sub.googleSheetUrl ? { 'default': sub.googleSheetUrl } : {}));
           }
         }
-
+        setLoadProgress(65);
       } else {
         router.push('/');
+        return;
       }
       
       // Fetch attendances
+      setLoadProgress(70);
       const attRes = await fetch(`/api/attendance?adminKey=${key}&subjectId=${currentSubId || ''}`);
+      setLoadProgress(90);
       if (attRes.ok) {
         const attResult = await attRes.json();
         setAttendances(attResult);
       }
+      setLoadProgress(100);
     } catch (err) {
       console.error('Error loading admin data:', err);
-      } finally {
+    } finally {
+      setTimeout(() => {
         setLoading(false);
-      }
-    }, [router]);
+        setIsRefreshing(false);
+        setLoadProgress(0);
+      }, 300);
+    }
+  }, [router]);
 
   useEffect(() => {
     const key = sessionStorage.getItem('adminKey');
@@ -1209,6 +1222,11 @@ export default function AdminPage() {
       <div className="loading-container">
         <div className="spinner" />
         <p className="loading-text">กำลังโหลดข้อมูล...</p>
+        {loadProgress > 0 && (
+          <div style={{ width: '200px', height: '6px', background: 'rgba(0,0,0,0.1)', borderRadius: '3px', marginTop: '12px', overflow: 'hidden' }}>
+            <div style={{ width: `${loadProgress}%`, height: '100%', background: 'linear-gradient(90deg, #4facfe, #00f2fe)', borderRadius: '3px', transition: 'width 0.3s ease' }} />
+          </div>
+        )}
       </div>
     );
   }
@@ -1219,6 +1237,32 @@ export default function AdminPage() {
 
   return (
     <div className="page-container">
+      {/* Loading overlay - blocks UI during data refresh */}
+      {isRefreshing && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(255,255,255,0.75)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          zIndex: 9999,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          gap: '16px',
+        }}>
+          <div className="spinner" />
+          <p style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>กำลังโหลดข้อมูล...</p>
+          <div style={{ width: '240px', height: '8px', background: 'rgba(0,0,0,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{
+              width: `${loadProgress}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #4facfe, #00f2fe)',
+              borderRadius: '4px',
+              transition: 'width 0.3s ease',
+            }} />
+          </div>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{loadProgress}%</span>
+        </div>
+      )}
       {qrCode && (
         <>
           {showQrCode ? (
