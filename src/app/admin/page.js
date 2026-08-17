@@ -2693,18 +2693,18 @@ export default function AdminPage() {
                 {/* เพิ่มลิงก์ใหม่ */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'flex-end', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
                   <div style={{ flex: '1', minWidth: '140px' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>เลือกห้อง</label>
-                    <select id="new-sheet-room" className="form-input" style={{ padding: '8px' }}>
-                      <option value="default">📌 ทุกห้อง (default)</option>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>พิมพ์หรือเลือกห้อง</label>
+                    <input type="text" id="new-sheet-room" list="room-list" className="form-input" style={{ padding: '8px' }} placeholder="ม.3/1 (เว้นว่าง = ทุกห้อง)" />
+                    <datalist id="room-list">
                       {(() => {
                         const allRooms = [...new Set(
                           summaryData.map(s => s.student.room).filter(Boolean)
                         )].sort();
                         return allRooms.map(r => (
-                          <option key={r} value={r}>{r}</option>
+                          <option key={r} value={r} />
                         ));
                       })()}
-                    </select>
+                    </datalist>
                   </div>
                   <div style={{ flex: '3', minWidth: '250px' }}>
                     <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>ลิงก์ Google Sheet</label>
@@ -2714,11 +2714,13 @@ export default function AdminPage() {
                     className="btn btn-primary" 
                     style={{ padding: '8px 20px', height: '38px', whiteSpace: 'nowrap' }}
                     onClick={() => {
-                      const room = document.getElementById('new-sheet-room').value;
+                      let room = document.getElementById('new-sheet-room').value.trim();
+                      if (!room) room = 'default';
                       const url = document.getElementById('new-sheet-url').value.trim();
                       if (!url) return alert('กรุณากรอกลิงก์ Google Sheet');
                       setGoogleSheetUrls(prev => ({ ...prev, [room]: url }));
                       document.getElementById('new-sheet-url').value = '';
+                      document.getElementById('new-sheet-room').value = '';
                     }}
                   >
                     + เพิ่มลิงก์
