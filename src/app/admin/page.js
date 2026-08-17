@@ -560,6 +560,66 @@ export default function AdminPage() {
     return { preMidterm: pre, postMidterm: post };
   }, [assignments]);
 
+  // Pre-compute attendance stats for all students (PERF: avoid recalculating in every row render)
+  const attendanceStats = useMemo(() => {
+    const stats = {};
+    if (!classSchedules || !attendances) return stats;
+
+    const normalizedScheds = getNormalizedSchedules(classSchedules);
+    if (normalizedScheds.length === 0) return stats;
+
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
+
+    // Build attendance index: { "studentId_YYYY-MM-DD": attendance }
+    const attIndex = {};
+    for (const att of attendances) {
+      const aDate = new Date(att.timestamp);
+      const key = `${att.studentId}_${aDate.getFullYear()}-${String(aDate.getMonth() + 1).padStart(2, '0')}-${String(aDate.getDate()).padStart(2, '0')}`;
+      attIndex[key] = att;
+    }
+
+    // Pre-compute class days list per room
+    const roomClassDays = {};
+    for (const s of normalizedScheds) {
+      if (!roomClassDays[s.room]) roomClassDays[s.room] = new Set();
+      roomClassDays[s.room].add(s.day);
+    }
+
+    // Pre-compute all class dates per room
+    const roomClassDates = {};
+    for (const [room, daysSet] of Object.entries(roomClassDays)) {
+      const dates = [];
+      let d = new Date(startOfSemester);
+      while (d <= todayDate) {
+        if (daysSet.has(d.getDay())) {
+          dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+        }
+        d.setDate(d.getDate() + 1);
+      }
+      roomClassDates[room] = dates;
+    }
+
+    for (const row of summaryData) {
+      const cleanedRoom = (row.student?.room || '').replace(/^ม\.?\s*/, '').trim();
+      const classDates = roomClassDates[cleanedRoom] || roomClassDates[row.student?.room] || [];
+      
+      let present = 0, leave = 0, absent = 0;
+      for (const dateStr of classDates) {
+        const att = attIndex[`${row.student.id}_${dateStr}`];
+        if (att) {
+          if (att.type === 'leave') leave++;
+          else present++;
+        } else {
+          absent++;
+        }
+      }
+      stats[row.student.id] = { present, leave, absent };
+    }
+    return stats;
+  }, [summaryData, classSchedules, attendances]);
+
   // Stats
   const { totalStudents, totalAssignments, totalExpected, totalSubmitted, submitRate } = useMemo(() => {
     const tStudents = students.length;
@@ -610,10 +670,6 @@ export default function AdminPage() {
   const handleExportExcel = () => {
     if (!summaryData || summaryData.length === 0) return;
 
-    const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
-
     const rows = summaryData
       .sort((a, b) => {
         const roomA = a.student.room || '';
@@ -622,38 +678,8 @@ export default function AdminPage() {
         return (a.student.id || '').localeCompare(b.student.id || '');
       })
       .map((row, idx) => {
-        // Calculate attendance
-        let presentCount = 0, leaveCount = 0, absentCount = 0;
-        const roomScheds = getNormalizedSchedules(classSchedules).filter(s => {
-          const cleanedRoom = (row.student?.room || '').replace(/^ม\.?\s*/, '').trim();
-          return s.room === cleanedRoom || s.room === row.student?.room;
-        });
-        const classDays = roomScheds.map(s => s.day);
-        if (classDays.length > 0) {
-          let d = new Date(startOfSemester);
-          while (d <= todayDate) {
-            if (classDays.includes(d.getDay())) {
-              const y = d.getFullYear();
-              const m = String(d.getMonth() + 1).padStart(2, '0');
-              const day = String(d.getDate()).padStart(2, '0');
-              const dateStr = `${y}-${m}-${day}`;
-              const att = (data?.attendances || []).find(a => {
-                if (a.studentId !== row.student.id) return false;
-                const aDate = new Date(a.timestamp);
-                const aDateStr = `${aDate.getFullYear()}-${String(aDate.getMonth()+1).padStart(2,'0')}-${String(aDate.getDate()).padStart(2,'0')}`;
-                return a.timestamp.startsWith(dateStr) || aDateStr === dateStr;
-              });
-              if (att) {
-                if (att.status === 'present' || att.status === 'late') presentCount++;
-                else if (att.status === 'leave') leaveCount++;
-                else absentCount++;
-              } else {
-                absentCount++;
-              }
-            }
-            d.setDate(d.getDate() + 1);
-          }
-        }
+        // Use pre-computed attendance stats
+        const { present: presentCount, leave: leaveCount, absent: absentCount } = attendanceStats[row.student.id] || { present: 0, leave: 0, absent: 0 };
 
         const assignmentScore = Object.values(row.submissions).reduce((sum, s) => sum + (Number(s.score) || 0), 0);
         const behaviorScore = Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1));
@@ -1495,46 +1521,7 @@ export default function AdminPage() {
                       const showRoomHeader = !filterSummaryRoom && prevRoom !== null && currentRoom !== prevRoom;
                       const totalCols = assignments.length + 10;
                       const submittedCount = Object.values(row.submissions).filter((v) => v.submitted).length;
-                      let presentCount = 0;
-                      let leaveCount = 0;
-                      let absentCount = 0;
-                      const todayDate = new Date();
-                      todayDate.setHours(0, 0, 0, 0);
-                      const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
-                      
-                      const roomScheds = getNormalizedSchedules(classSchedules).filter(s => {
-                        const cleanedRoom = (row.student?.room || '').replace(/^ม\.?\s*/, '').trim();
-                        return s.room === cleanedRoom || s.room === row.student?.room;
-                      });
-                      const classDays = roomScheds.map(s => s.day);
-
-                      if (classDays.length > 0) {
-                        let d = new Date(startOfSemester);
-                        while (d <= todayDate) {
-                          if (classDays.includes(d.getDay())) {
-                            const y = d.getFullYear();
-                            const m = String(d.getMonth() + 1).padStart(2, '0');
-                            const day = String(d.getDate()).padStart(2, '0');
-                            const dateStr = `${y}-${m}-${day}`;
-                            const att = attendances.find(a => {
-                              if (a.studentId !== row.student.id) return false;
-                              const aDate = new Date(a.timestamp);
-                              const ay = aDate.getFullYear();
-                              const am = String(aDate.getMonth() + 1).padStart(2, '0');
-                              const ad = String(aDate.getDate()).padStart(2, '0');
-                              const aDateStr = `${ay}-${am}-${ad}`;
-                              return a.timestamp.startsWith(dateStr) || aDateStr === dateStr;
-                            });
-                            if (att) {
-                              if (att.type === 'leave') leaveCount++;
-                              else presentCount++;
-                            } else {
-                              absentCount++;
-                            }
-                          }
-                          d.setDate(d.getDate() + 1);
-                        }
-                      }
+                      const { present: presentCount, leave: leaveCount, absent: absentCount } = attendanceStats[row.student.id] || { present: 0, leave: 0, absent: 0 };
                       
                       return (
                         <React.Fragment key={row.student.id}>
