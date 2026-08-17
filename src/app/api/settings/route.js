@@ -39,6 +39,7 @@ export async function POST(request) {
       if (targetLng !== undefined) subjectUpdates.targetLng = targetLng;
       if (targetRoomName !== undefined) subjectUpdates.targetRoomName = targetRoomName;
       if (classSchedules !== undefined) subjectUpdates.classSchedules = classSchedules;
+      if (body.googleSheetUrl !== undefined) subjectUpdates.googleSheetUrl = body.googleSheetUrl;
       
       await updateSubject(subjectId, subjectUpdates);
     }

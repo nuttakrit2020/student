@@ -372,6 +372,7 @@ export default function AdminPage() {
   const [targetLat, setTargetLat] = useState(null);
   const [targetLng, setTargetLng] = useState(null);
   const [targetRoomName, setTargetRoomName] = useState('');
+  const [googleSheetUrl, setGoogleSheetUrl] = useState('');
   const [qrCode, setQrCode] = useState('');
   const [showQrCode, setShowQrCode] = useState(true);
   const [adminAvatarUrl, setAdminAvatarUrl] = useState('');
@@ -455,6 +456,7 @@ export default function AdminPage() {
             setTargetLng(sub.targetLng || null);
             setTargetRoomName(sub.targetRoomName || '');
             setClassSchedules(getNormalizedSchedules(sub.classSchedules));
+            setGoogleSheetUrl(sub.googleSheetUrl || '');
           }
         }
 
@@ -1408,7 +1410,17 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {assignments.length === 0 ? (
+            {googleSheetUrl ? (
+              <div className="google-sheet-wrapper" style={{ width: '100%', height: '800px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', marginTop: '16px' }}>
+                <iframe 
+                  src={googleSheetUrl}
+                  width="100%" 
+                  height="100%" 
+                  style={{ border: 'none' }}
+                  title="Google Sheet Summary"
+                />
+              </div>
+            ) : assignments.length === 0 ? (
               <div className="empty-state">
                 <div className="icon">📭</div>
                 <p>ยังไม่มีงานที่สร้าง</p>
@@ -2587,6 +2599,21 @@ export default function AdminPage() {
                   * การเพิ่มตารางเรียนจะช่วยให้ระบบรู้ว่านักเรียนห้องนี้เรียนวันไหน และสามารถคำนวณการเช็คชื่อได้อย่างแม่นยำ
                 </p>
               </div>
+              
+              <div className="form-group" style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '24px' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>📝 ลิงก์ Google Sheet (สำหรับฝังแทนตารางสรุป)</h3>
+                <input
+                  type="url"
+                  className="form-input"
+                  value={googleSheetUrl}
+                  onChange={(e) => setGoogleSheetUrl(e.target.value)}
+                  placeholder="https://docs.google.com/spreadsheets/d/..."
+                />
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '24px' }}>
+                  * หากระบุลิงก์ ระบบจะแสดง Google Sheet แทนตารางสรุปการส่งงานปกติ (อย่าลืมตั้งค่าแชร์ Sheet ให้อ่าน/แก้ไขได้)
+                </p>
+              </div>
+              
               <button 
                 className="btn btn-primary" 
                 style={{ width: 'auto' }}
@@ -2605,6 +2632,7 @@ export default function AdminPage() {
                         targetLat,
                         targetLng,
                         targetRoomName,
+                        googleSheetUrl,
                         adminKey, 
                         qrCode 
                       })
