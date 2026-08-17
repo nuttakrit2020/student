@@ -658,15 +658,19 @@ export default function AdminPage() {
 
   // Stats
   const { totalStudents, totalAssignments, totalExpected, totalSubmitted, submitRate } = useMemo(() => {
-    const tStudents = students.length;
+    const filteredSummaryData = filterSummaryRoom 
+      ? summaryData.filter(row => row.student.room === filterSummaryRoom)
+      : summaryData;
+
+    const tStudents = filteredSummaryData.length;
     const tAssignments = assignments.length;
     const tExpected = tStudents * tAssignments;
-    const tSubmitted = summaryData.reduce((acc, s) => {
+    const tSubmitted = filteredSummaryData.reduce((acc, s) => {
       return acc + Object.values(s.submissions).filter((v) => v.submitted).length;
     }, 0);
     const sRate = tExpected > 0 ? Math.round((tSubmitted / tExpected) * 100) : 0;
     return { totalStudents: tStudents, totalAssignments: tAssignments, totalExpected: tExpected, totalSubmitted: tSubmitted, submitRate: sRate };
-  }, [students, assignments, summaryData]);
+  }, [assignments, summaryData, filterSummaryRoom]);
 
   const handleStudentScoreChange = async (studentId, field, newScoreStr) => {
     const newScore = newScoreStr === '' ? null : Number(newScoreStr);
