@@ -372,7 +372,7 @@ export default function AdminPage() {
   const [targetLat, setTargetLat] = useState(null);
   const [targetLng, setTargetLng] = useState(null);
   const [targetRoomName, setTargetRoomName] = useState('');
-  const [googleSheetUrl, setGoogleSheetUrl] = useState('');
+  const [googleSheetUrls, setGoogleSheetUrls] = useState({});
   const [qrCode, setQrCode] = useState('');
   const [showQrCode, setShowQrCode] = useState(true);
   const [adminAvatarUrl, setAdminAvatarUrl] = useState('');
@@ -456,7 +456,7 @@ export default function AdminPage() {
             setTargetLng(sub.targetLng || null);
             setTargetRoomName(sub.targetRoomName || '');
             setClassSchedules(getNormalizedSchedules(sub.classSchedules));
-            setGoogleSheetUrl(sub.googleSheetUrl || '');
+            setGoogleSheetUrls(sub.googleSheetUrls || (sub.googleSheetUrl ? { 'default': sub.googleSheetUrl } : {}));
           }
         }
 
@@ -1410,22 +1410,38 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {googleSheetUrl ? (
-              <div className="google-sheet-wrapper" style={{ width: '100%', height: '800px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', marginTop: '16px' }}>
-                <iframe 
-                  src={googleSheetUrl}
-                  width="100%" 
-                  height="100%" 
-                  style={{ border: 'none' }}
-                  title="Google Sheet Summary"
-                />
-              </div>
-            ) : assignments.length === 0 ? (
-              <div className="empty-state">
-                <div className="icon">📭</div>
-                <p>ยังไม่มีงานที่สร้าง</p>
-              </div>
-            ) : (
+            {(() => {
+              const activeSheetUrl = filterSummaryRoom && googleSheetUrls[filterSummaryRoom] 
+                ? googleSheetUrls[filterSummaryRoom] 
+                : (!filterSummaryRoom && Object.keys(googleSheetUrls).length > 0) 
+                  ? (googleSheetUrls['default'] || Object.values(googleSheetUrls)[0] || '') 
+                  : '';
+
+              if (activeSheetUrl) {
+                return (
+                  <div className="google-sheet-wrapper" style={{ width: '100%', height: '800px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', marginTop: '16px' }}>
+                    <iframe 
+                      key={activeSheetUrl}
+                      src={activeSheetUrl}
+                      width="100%" 
+                      height="100%" 
+                      style={{ border: 'none' }}
+                      title="Google Sheet Summary"
+                    />
+                  </div>
+                );
+              }
+
+              if (assignments.length === 0) {
+                return (
+                  <div className="empty-state">
+                    <div className="icon">📭</div>
+                    <p>ยังไม่มีงานที่สร้าง</p>
+                  </div>
+                );
+              }
+
+              return (
               <div className="table-wrapper" onMouseUp={handleMouseUpOrLeave} onMouseLeave={handleMouseUpOrLeave}>
                 <table className="data-table" style={{ userSelect: 'none' }}>
                   <thead>
@@ -1689,7 +1705,8 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
@@ -2601,16 +2618,71 @@ export default function AdminPage() {
               </div>
               
               <div className="form-group" style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '24px' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>📝 ลิงก์ Google Sheet (สำหรับฝังแทนตารางสรุป)</h3>
-                <input
-                  type="url"
-                  className="form-input"
-                  value={googleSheetUrl}
-                  onChange={(e) => setGoogleSheetUrl(e.target.value)}
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>📝 ลิงก์ Google Sheet (แยกตามห้อง)</h3>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  {Object.entries(googleSheetUrls).map(([room, url]) => (
+                    <div key={room} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                      <span style={{ fontWeight: 600, minWidth: '80px', fontSize: '0.9rem' }}>🏫 {room === 'default' ? 'ทุกห้อง' : room}</span>
+                      <input
+                        type="url"
+                        className="form-input"
+                        style={{ flex: 1, padding: '6px 10px', fontSize: '0.85rem', margin: 0 }}
+                        value={url}
+                        onChange={(e) => {
+                          setGoogleSheetUrls(prev => ({ ...prev, [room]: e.target.value }));
+                        }}
+                        placeholder="https://docs.google.com/spreadsheets/d/..."
+                      />
+                      <button 
+                        className="btn btn-secondary btn-sm" 
+                        style={{ color: 'var(--error)', padding: '4px 8px', whiteSpace: 'nowrap' }}
+                        onClick={() => {
+                          setGoogleSheetUrls(prev => {
+                            const next = { ...prev };
+                            delete next[room];
+                            return next;
+                          });
+                        }}
+                      >
+                        ลบ
+                      </button>
+                    </div>
+                  ))}
+                  {Object.keys(googleSheetUrls).length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                      ยังไม่ได้เพิ่มลิงก์ Google Sheet
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'flex-end', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
+                  <div style={{ flex: '1', minWidth: '120px' }}>
+                    <label style={{ fontSize: '0.85rem' }}>ห้อง (เช่น ม.3/1)</label>
+                    <input type="text" id="new-sheet-room" className="form-input" style={{ padding: '8px' }} placeholder="ม.3/1 หรือเว้นว่าง = ทุกห้อง" />
+                  </div>
+                  <div style={{ flex: '3', minWidth: '250px' }}>
+                    <label style={{ fontSize: '0.85rem' }}>ลิงก์ Google Sheet</label>
+                    <input type="url" id="new-sheet-url" className="form-input" style={{ padding: '8px' }} placeholder="https://docs.google.com/spreadsheets/d/..." />
+                  </div>
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ padding: '8px 16px', height: '38px' }}
+                    onClick={() => {
+                      const room = document.getElementById('new-sheet-room').value.trim() || 'default';
+                      const url = document.getElementById('new-sheet-url').value.trim();
+                      if (!url) return alert('กรุณากรอกลิงก์ Google Sheet');
+                      setGoogleSheetUrls(prev => ({ ...prev, [room]: url }));
+                      document.getElementById('new-sheet-room').value = '';
+                      document.getElementById('new-sheet-url').value = '';
+                    }}
+                  >
+                    + เพิ่ม
+                  </button>
+                </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '24px' }}>
-                  * หากระบุลิงก์ ระบบจะแสดง Google Sheet แทนตารางสรุปการส่งงานปกติ (อย่าลืมตั้งค่าแชร์ Sheet ให้อ่าน/แก้ไขได้)
+                  * เพิ่มลิงก์แยกตามห้อง — เวลาเลือกกรองห้องในแท็บ "สรุปการส่งงาน" จะแสดง Sheet ของห้องนั้น<br/>
+                  * อย่าลืมตั้งค่าแชร์ Sheet ให้อ่าน/แก้ไขได้
                 </p>
               </div>
               
@@ -2632,7 +2704,7 @@ export default function AdminPage() {
                         targetLat,
                         targetLng,
                         targetRoomName,
-                        googleSheetUrl,
+                        googleSheetUrls,
                         adminKey, 
                         qrCode 
                       })
