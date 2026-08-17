@@ -1418,22 +1418,10 @@ export default function AdminPage() {
         </div>
 
         {/* Stats */}
-        <div className="stats-grid">
+        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           <div className="stat-card">
             <div className="stat-value">{totalStudents}</div>
-            <div className="stat-label">👩‍🎓 นักเรียน</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{totalAssignments}</div>
-            <div className="stat-label">📋 งานทั้งหมด</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{totalSubmitted}/{totalExpected}</div>
-            <div className="stat-label">📤 ส่งงานแล้ว</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{submitRate}%</div>
-            <div className="stat-label">📊 อัตราการส่ง</div>
+            <div className="stat-label">👩‍🎓 นักเรียนทั้งหมด</div>
           </div>
         </div>
 
@@ -1443,13 +1431,7 @@ export default function AdminPage() {
             className={`nav-btn ${activeTab === 'summary' ? 'active' : ''}`}
             onClick={() => setActiveTab('summary')}
           >
-            📊 สรุปการส่งงาน
-          </button>
-          <button
-            className={`nav-btn ${activeTab === 'assignments' ? 'active' : ''}`}
-            onClick={() => setActiveTab('assignments')}
-          >
-            📋 จัดการงาน
+            📊 สรุปคะแนน (Google Sheet)
           </button>
           <button
             className={`nav-btn ${activeTab === 'students' ? 'active' : ''}`}
@@ -1516,7 +1498,7 @@ export default function AdminPage() {
                   ? (googleSheetUrls['default'] || Object.values(googleSheetUrls)[0] || '') 
                   : '';
 
-              if (activeSheetUrl) {
+if (activeSheetUrl) {
                 return (
                   <div className="google-sheet-wrapper" style={{ width: '100%', height: '800px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', marginTop: '16px' }}>
                     <iframe 
@@ -1531,236 +1513,11 @@ export default function AdminPage() {
                 );
               }
 
-              if (assignments.length === 0) {
-                return (
-                  <div className="empty-state">
-                    <div className="icon">📭</div>
-                    <p>ยังไม่มีงานที่สร้าง</p>
-                  </div>
-                );
-              }
-
               return (
-              <div className="table-wrapper" onMouseUp={handleMouseUpOrLeave} onMouseLeave={handleMouseUpOrLeave}>
-                <table className="data-table" style={{ userSelect: 'none' }}>
-                  <thead>
-                    <tr>
-                      <th className="sticky-col-1" style={{ width: '32px', minWidth: '32px', maxWidth: '32px', textAlign: 'center', padding: '10px 2px', fontSize: '0.8rem' }}>ที่</th>
-                      <th className="sticky-col-2" style={{ width: '70px', minWidth: '70px', maxWidth: '70px', padding: '10px 4px', fontSize: '0.8rem' }}>รหัส</th>
-                      <th className="sticky-col-3" style={{ minWidth: '120px', padding: '10px 6px', fontSize: '0.8rem' }}>ชื่อ-สกุล</th>
-                      {preMidterm.map((a) => (
-                        <th 
-                          key={a.id} 
-                          title={`${a.title}\n(คลิกเพื่อกรอกคะแนนให้ทุกคน)`} 
-                          style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', background: 'var(--bg-primary)' }}
-                          onClick={() => handleBulkScore('assignment', a.id, a.maxScore || 10, a.title)}
-                        >
-                          {a.title.length > 15 ? a.title.substring(0, 15) + '...' : a.title} ✏️
-                        </th>
-                      ))}
-                      <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'midtermScore', 20, 'สอบกลางภาค')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">กลางภาค ✏️ (20)</th>
-                      
-                      {postMidterm.map((a) => (
-                        <th 
-                          key={a.id} 
-                          title={`${a.title}\n(คลิกเพื่อกรอกคะแนนให้ทุกคน)`} 
-                          style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', background: 'var(--bg-primary)' }}
-                          onClick={() => handleBulkScore('assignment', a.id, a.maxScore || 10, a.title)}
-                        >
-                          {a.title.length > 15 ? a.title.substring(0, 15) + '...' : a.title} ✏️
-                        </th>
-                      ))}
-                      <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'finalScore', 20, 'สอบปลายภาค')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">ปลายภาค ✏️ (20)</th>
-                      <th style={{ cursor: 'pointer', background: 'var(--bg-primary)' }} onClick={() => handleBulkScore('student', 'behaviorScore', 10, 'จิตพิสัย')} title="คลิกเพื่อกรอกคะแนนให้ทุกคน">จิตพิสัย ✏️ (10)</th>
-                      <th style={{ background: '#e6f4ea', color: '#137333' }}>มาเรียน</th>
-                      <th style={{ background: '#fef7e0', color: '#b06000' }}>ลา</th>
-                      <th style={{ background: '#fce8e6', color: '#c5221f' }}>ขาด</th>
-                      <th>รวม (100)</th>
-                      <th style={{ background: 'var(--bg-primary)', color: 'var(--accent-primary)' }}>เกรด</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summaryData
-                      .filter(row => !filterSummaryRoom || row.student.room === filterSummaryRoom)
-                      .sort((a, b) => {
-                        const roomA = a.student.room || '';
-                        const roomB = b.student.room || '';
-                        if (roomA !== roomB) return roomA.localeCompare(roomB, 'th');
-                        return (a.student.id || '').localeCompare(b.student.id || '');
-                      })
-                      .map((row, idx, arr) => {
-                      const currentRoom = row.student.room || '';
-                      const prevRoom = idx > 0 ? (arr[idx - 1].student.room || '') : null;
-                      const showRoomHeader = !filterSummaryRoom && prevRoom !== null && currentRoom !== prevRoom;
-                      const totalCols = assignments.length + 10;
-                      const submittedCount = Object.values(row.submissions).filter((v) => v.submitted).length;
-                      const { present: presentCount, leave: leaveCount, absent: absentCount } = attendanceStats[row.student.id] || { present: 0, leave: 0, absent: 0 };
-                      
-                      return (
-                        <React.Fragment key={row.student.id}>
-                          {showRoomHeader && (
-                            <tr>
-                              <td colSpan={totalCols} style={{ background: 'linear-gradient(135deg, #e3f2fd, #e8eaf6)', fontWeight: 700, fontSize: '0.95rem', padding: '10px 16px', color: '#1565c0', borderTop: '3px solid #90caf9' }}>
-                                🏫 {currentRoom}
-                              </td>
-                            </tr>
-                          )}
-                          {idx === 0 && !filterSummaryRoom && (
-                            <tr>
-                              <td colSpan={totalCols} style={{ background: 'linear-gradient(135deg, #e3f2fd, #e8eaf6)', fontWeight: 700, fontSize: '0.95rem', padding: '10px 16px', color: '#1565c0', borderTop: '3px solid #90caf9' }}>
-                                🏫 {currentRoom}
-                              </td>
-                            </tr>
-                          )}
-                          <tr className="student-row">
-                          <td className="sticky-col-1" style={{ width: '32px', minWidth: '32px', maxWidth: '32px', textAlign: 'center', padding: '6px 2px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>{idx + 1}</td>
-                          <td className="sticky-col-2" style={{ width: '70px', minWidth: '70px', maxWidth: '70px', padding: '6px 4px', fontFamily: 'var(--font-en)', fontWeight: 600, fontSize: '0.8rem' }}>{row.student.id}</td>
-                          <td className="sticky-col-3" style={{ minWidth: '120px', padding: '6px 6px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{row.student.name}</td>
-                          {preMidterm.map((a) => {
-                            const sub = row.submissions[a.id];
-                            return (
-                              <td
-                                key={a.id}
-                                title={sub?.submitted ? 'ส่งแล้ว (คลิกเพื่อสลับ)' : 'ยังไม่ส่ง (คลิกเพื่อสลับ)'}
-                                style={{ 
-                                  textAlign: 'center', 
-                                  cursor: 'pointer', 
-                                  padding: '4px 2px',
-                                  background: sub?.submitted ? 'rgba(0,184,148,0.1)' : 'rgba(225,112,85,0.08)',
-                                  borderLeft: sub?.submitted ? '3px solid #00b894' : '3px solid #e17055',
-                                }}
-                                onMouseDown={() => handleCellMouseDown(row.student.id, a.id, sub?.submitted, sub?.score)}
-                                onMouseEnter={() => handleCellMouseEnter(row.student.id, a.id, sub?.submitted, sub?.score)}
-                              >
-                                <input 
-                                  type="number" 
-                                  className="score-input"
-                                  placeholder={sub?.submitted ? '0' : '-'}
-                                  value={sub?.score ?? ''} 
-                                  onChange={(e) => handleScoreChange(row.student.id, a.id, sub?.submitted, e.target.value)} 
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onClick={(e) => e.stopPropagation()}
-                                  style={{ 
-                                    width: '38px', 
-                                    padding: '3px 2px', 
-                                    fontSize: '0.85rem', 
-                                    textAlign: 'center',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    background: 'transparent',
-                                    color: sub?.submitted ? '#00b894' : '#e17055',
-                                    fontWeight: 700,
-                                    outline: 'none',
-                                  }}
-                                />
-                              </td>
-                            );
-                          })}
-                          <td style={{ textAlign: 'center', padding: '4px 2px' }}>
-                            <ScoreInput
-                              initialValue={row.student.midtermScore}
-                              onChange={(newVal) => handleStudentScoreChange(row.student.id, 'midtermScore', newVal)}
-                              min={0} max={20}
-                              style={{ width: '40px', padding: '3px 2px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid rgba(108,92,231,0.15)', borderRadius: '4px', background: 'rgba(108,92,231,0.03)', color: 'var(--text-primary)', fontWeight: 600 }}
-                              placeholder="-"
-                            />
-                          </td>
-                          {postMidterm.map((a) => {
-                            const sub = row.submissions[a.id];
-                            return (
-                              <td
-                                key={a.id}
-                                title={sub?.submitted ? 'ส่งแล้ว (คลิกเพื่อสลับ)' : 'ยังไม่ส่ง (คลิกเพื่อสลับ)'}
-                                style={{ 
-                                  textAlign: 'center', 
-                                  cursor: 'pointer', 
-                                  padding: '4px 2px',
-                                  background: sub?.submitted ? 'rgba(0,184,148,0.1)' : 'rgba(225,112,85,0.08)',
-                                  borderLeft: sub?.submitted ? '3px solid #00b894' : '3px solid #e17055',
-                                }}
-                                onMouseDown={() => handleCellMouseDown(row.student.id, a.id, sub?.submitted, sub?.score)}
-                                onMouseEnter={() => handleCellMouseEnter(row.student.id, a.id, sub?.submitted, sub?.score)}
-                              >
-                                <input 
-                                  type="number" 
-                                  className="score-input"
-                                  placeholder={sub?.submitted ? '0' : '-'}
-                                  value={sub?.score ?? ''} 
-                                  onChange={(e) => handleScoreChange(row.student.id, a.id, sub?.submitted, e.target.value)} 
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onClick={(e) => e.stopPropagation()}
-                                  style={{ 
-                                    width: '38px', 
-                                    padding: '3px 2px', 
-                                    fontSize: '0.85rem', 
-                                    textAlign: 'center',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    background: 'transparent',
-                                    color: sub?.submitted ? '#00b894' : '#e17055',
-                                    fontWeight: 700,
-                                    outline: 'none',
-                                  }}
-                                />
-                              </td>
-                            );
-                          })}
-                          <td style={{ textAlign: 'center', padding: '4px 2px' }}>
-                            <ScoreInput
-                              initialValue={row.student.finalScore}
-                              onChange={(newVal) => handleStudentScoreChange(row.student.id, 'finalScore', newVal)}
-                              min={0} max={20}
-                              style={{ width: '40px', padding: '3px 2px', fontSize: '0.85rem', textAlign: 'center', border: '1px solid rgba(108,92,231,0.15)', borderRadius: '4px', background: 'rgba(108,92,231,0.03)', color: 'var(--text-primary)', fontWeight: 600 }}
-                              placeholder="-"
-                            />
-                          </td>
-                          <td style={{ textAlign: 'center', fontWeight: 600, padding: '4px 2px', fontSize: '0.85rem' }}>
-                            {Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1))}
-                          </td>
-                          <td style={{ textAlign: 'center', fontWeight: 600, color: '#137333', padding: '4px 2px', fontSize: '0.85rem' }}>{presentCount}</td>
-                          <td style={{ textAlign: 'center', fontWeight: 600, color: '#b06000', padding: '4px 2px', fontSize: '0.85rem' }}>{leaveCount}</td>
-                          <td style={{ textAlign: 'center', fontWeight: 600, color: '#c5221f', padding: '4px 2px', fontSize: '0.85rem' }}>{absentCount}</td>
-                          <td style={{
-                            fontFamily: 'var(--font-en)',
-                            fontWeight: 700,
-                            textAlign: 'center',
-                            color: 'var(--text-primary)'
-                          }}>
-                            {(() => {
-                              const assignmentScore = Object.values(row.submissions).reduce((sum, s) => sum + (Number(s.score) || 0), 0);
-                              const bScore = Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1));
-                              const totalScore = assignmentScore + (Number(row.student.midtermScore) || 0) + (Number(row.student.finalScore) || 0) + bScore;
-                              return totalScore;
-                            })()}
-                          </td>
-                          <td style={{
-                            fontFamily: 'var(--font-en)',
-                            fontWeight: 700,
-                            textAlign: 'center',
-                            color: 'var(--accent-primary)',
-                            fontSize: '1.1rem'
-                          }}>
-                            {(() => {
-                              const assignmentScore = Object.values(row.submissions).reduce((sum, s) => sum + (Number(s.score) || 0), 0);
-                              const bScore = Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1));
-                              const totalScore = assignmentScore + (Number(row.student.midtermScore) || 0) + (Number(row.student.finalScore) || 0) + bScore;
-                              if (totalScore < 50) return 0;
-                              if (totalScore < 55) return 1;
-                              if (totalScore < 60) return 1.5;
-                              if (totalScore < 65) return 2;
-                              if (totalScore < 70) return 2.5;
-                              if (totalScore < 75) return 3;
-                              if (totalScore < 80) return 3.5;
-                              return 4;
-                            })()}
-                          </td>
-                        </tr>
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                <div className="empty-state">
+                  <div className="icon">📊</div>
+                  <p>โปรดตั้งค่าลิงก์ Google Sheet ในเมนู "ตั้งค่าระบบ"</p>
+                </div>
               );
             })()}
           </div>

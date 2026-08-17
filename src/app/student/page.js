@@ -592,13 +592,14 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
 
 export default function StudentPage() {
   const [student, setStudent] = useState(null);
-  const [assignments, setAssignments] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
   const [attendances, setAttendances] = useState([]);
   const [settings, setSettings] = useState({ subjectName: '', className: '', classSchedules: {} });
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sheetData, setSheetData] = useState(null);
+  const [sheetLoading, setSheetLoading] = useState(false);
+  const [sheetError, setSheetError] = useState('');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [showLocationWarningModal, setShowLocationWarningModal] = useState(false);
@@ -704,20 +705,14 @@ export default function StudentPage() {
         }
       }
 
-      const [assignRes, subRes, setRes, attRes] = await Promise.all([
-        fetch(`/api/assignments?subjectId=${subjectId || ''}`),
-        fetch(`/api/submissions?studentId=${studentData.id}&subjectId=${subjectId || ''}`),
+      const [setRes, attRes] = await Promise.all([
         fetch('/api/settings'),
         fetch(`/api/attendance?studentId=${studentData.id}&subjectId=${subjectId || ''}`),
       ]);
 
-      const assignData = await assignRes.json();
-      const subData = await subRes.json();
       const setData = await setRes.json();
       const attData = await attRes.json();
 
-      setAssignments(assignData.assignments || []);
-      setSubmissions(subData.submissions || []);
       setAttendances(Array.isArray(attData) ? attData : []);
       if (setData.settings) {
         setSettings(setData.settings);
@@ -747,10 +742,6 @@ export default function StudentPage() {
     setStudent(studentData);
     fetchData(studentData);
   }, [router, fetchData]);
-
-  const getSubmissionForAssignment = (assignmentId) => {
-    return submissions.find((s) => s.assignmentId === assignmentId);
-  };
 
   const getNormalizedSchedules = (scheds) => {
     if (!scheds) return [];
@@ -787,10 +778,6 @@ export default function StudentPage() {
     setShowAttendanceModal(true);
   };
 
-  const submittedCount = assignments.filter((a) => getSubmissionForAssignment(a.id)).length;
-  const totalCount = assignments.length;
-  const progressPercent = totalCount > 0 ? Math.round((submittedCount / totalCount) * 100) : 0;
-
   // Compute attendance stats
   let presentCount = 0;
   let leaveCount = 0;
@@ -815,6 +802,33 @@ export default function StudentPage() {
     return cleaned;
   };
   const roomKey = getRoomKey(student?.room);
+  const activeSheetUrl = currentSubject?.googleSheetUrls?.[roomKey] 
+                || currentSubject?.googleSheetUrls?.['default'] 
+                || (currentSubject?.googleSheetUrls ? Object.values(currentSubject.googleSheetUrls)[0] : '')
+                || settings?.googleSheetUrls?.[roomKey]
+                || settings?.googleSheetUrls?.['default']
+                || '';
+
+  useEffect(() => {
+    if (!activeSheetUrl) {
+      setSheetData(null);
+      return;
+    }
+    setSheetLoading(true);
+    setSheetError('');
+    fetch(`/api/sheet?url=${encodeURIComponent(activeSheetUrl)}`)
+      .then(res => res.json())
+      .then(data => {
+         if (data.error) throw new Error(data.error);
+         setSheetData(data.data);
+      })
+      .catch(err => {
+         console.error('Sheet fetch error:', err);
+         setSheetError(err.message);
+      })
+      .finally(() => setSheetLoading(false));
+  }, [activeSheetUrl]);
+
   
   const schedule = subjectSchedules[roomKey];
   const classDay = schedule ? schedule.day : null;
@@ -933,23 +947,8 @@ export default function StudentPage() {
         {/* Student Calendar */}
         <StudentCalendar attendances={attendances} classSchedules={subjectSchedules} studentRoom={student?.room} />
 
-        {/* Stats */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-value">{totalCount}</div>
-            <div className="stat-label">งานทั้งหมด</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{submittedCount}</div>
-            <div className="stat-label">ส่งแล้ว ✅</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{totalCount - submittedCount}</div>
-            <div className="stat-label">ยังไม่ส่ง ❌</div>
-          </div>
-        </div>
-
-        <div className="stats-grid">
+        {/* Attendance Stats */}
+        <div className="stats-grid" style={{ marginBottom: '24px' }}>
           <div className="stat-card">
             <div className="stat-value" style={{ color: '#34a853' }}>{presentCount}</div>
             <div className="stat-label">มาเรียน</div>
@@ -964,139 +963,93 @@ export default function StudentPage() {
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div className="card-header">
-            <span className="card-title">📊 ความคืบหน้า</span>
-            <span style={{ color: 'var(--accent-secondary)', fontFamily: 'var(--font-en)', fontWeight: 700 }}>
-              {progressPercent}%
-            </span>
-          </div>
-          <div className="progress-bar-wrapper">
-            <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }} />
-          </div>
-        </div>
-
-        {/* Score Breakdown */}
-        <div className="card" style={{ marginBottom: '24px', background: 'linear-gradient(145deg, #ffffff, #f5f8ff)' }}>
-          <div className="card-header" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '12px', marginBottom: '16px' }}>
-            <span className="card-title">🏆 สรุปคะแนน</span>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>เต็ม 100</span>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {(() => {
-              const assignmentScore = submissions.reduce((sum, s) => sum + (Number(s.score) || 0), 0);
-              const midtermScore = Number(student?.midtermScore) || 0;
-              const finalScore = Number(student?.finalScore) || 0;
-              const behaviorScore = Math.max(0, 10 - (absentCount * 2) - (leaveCount * 1));
-              const totalScore = assignmentScore + midtermScore + finalScore + behaviorScore;
-
-              return (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>📝 คะแนนใบงาน</span>
-                    <strong style={{ fontFamily: 'var(--font-en)' }}>{assignmentScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>/ 50</span></strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>📝 สอบกลางภาค</span>
-                    <strong style={{ fontFamily: 'var(--font-en)' }}>{midtermScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>/ 20</span></strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>📝 สอบปลายภาค</span>
-                    <strong style={{ fontFamily: 'var(--font-en)' }}>{finalScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>/ 20</span></strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>❤️ จิตพิสัย / มาเรียน</span>
-                    <strong style={{ fontFamily: 'var(--font-en)' }}>{behaviorScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>/ 10</span></strong>
-                  </div>
-                  <div style={{ height: '1px', background: 'var(--border-light)', margin: '8px 0' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--accent-primary)' }}>รวมทั้งหมด</span>
-                    <strong style={{ fontFamily: 'var(--font-en)', fontSize: '1.3rem', color: 'var(--accent-primary)' }}>{totalScore} <span style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>/ 100</span></strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '2px dashed var(--accent-light)' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#137333' }}>🏆 เกรดที่ได้</span>
-                    <strong style={{ fontFamily: 'var(--font-en)', fontSize: '1.5rem', color: '#137333' }}>
-                      {(() => {
-                        if (totalScore < 50) return 0;
-                        if (totalScore < 55) return 1;
-                        if (totalScore < 60) return 1.5;
-                        if (totalScore < 65) return 2;
-                        if (totalScore < 70) return 2.5;
-                        if (totalScore < 75) return 3;
-                        if (totalScore < 80) return 3.5;
-                        return 4;
-                      })()}
-                    </strong>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-
-        {/* Assignment List */}
+        {/* Google Sheet Summary */}
         <div style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📋 รายการงาน</h2>
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📊 สรุปคะแนน</h2>
         </div>
+        {(() => {
+          if (!activeSheetUrl) {
+            return (
+              <div className="empty-state" style={{ marginBottom: '24px' }}>
+                <div className="icon">📊</div>
+                <p>ครูผู้สอนยังไม่ได้เชื่อมโยงลิงก์คะแนน</p>
+              </div>
+            );
+          }
 
-        {assignments.length === 0 ? (
-          <div className="empty-state">
-            <div className="icon">📭</div>
-            <p>ยังไม่มีงานที่มอบหมาย</p>
-          </div>
-        ) : (
-          <div className="assignment-list">
-            {assignments.map((assignment) => {
-              const sub = getSubmissionForAssignment(assignment.id);
-              const isSubmitted = !!sub;
+          if (sheetLoading) {
+            return (
+              <div className="empty-state" style={{ marginBottom: '24px' }}>
+                <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
+                <p>กำลังดึงข้อมูลคะแนนล่าสุด...</p>
+              </div>
+            );
+          }
 
-              return (
-                <div
-                  key={assignment.id}
-                  className={`assignment-card ${isSubmitted ? 'submitted' : 'not-submitted'}`}
-                >
-                  <div className="assignment-top">
-                    <div className="assignment-info">
-                      <h3>{assignment.title}</h3>
-                      <p>{assignment.description}</p>
-                    </div>
-                    <div className={`status-badge ${isSubmitted ? 'success' : 'danger'}`}>
-                      {isSubmitted ? '✅ ส่งแล้ว' : '❌ ยังไม่ส่ง'}
-                    </div>
+          if (sheetError) {
+             return (
+              <div className="empty-state" style={{ marginBottom: '24px' }}>
+                <div className="icon">⚠️</div>
+                <p>ไม่สามารถดึงข้อมูลได้: {sheetError}</p>
+              </div>
+             );
+          }
+
+          if (sheetData && student) {
+             const studentRow = sheetData.find(row => {
+                return Object.values(row).some(val => {
+                    if (!val) return false;
+                    const sVal = String(val).trim();
+                    if (sVal === student.id) return true;
+                    if (student.firstName && sVal.includes(student.firstName)) return true;
+                    return false;
+                });
+             });
+
+             if (!studentRow) {
+                return (
+                  <div className="empty-state" style={{ marginBottom: '24px' }}>
+                    <div className="icon">🕵️</div>
+                    <p>ไม่พบข้อมูลของคุณในตารางคะแนน (ไม่พบรหัส {student.id})</p>
                   </div>
+                );
+             }
 
-                  <div className="assignment-meta">
-                    {assignment.deadline && (
-                      <span>📅 กำหนดส่ง: {assignment.deadline}</span>
-                    )}
-                    <span>⭐ คะแนนเต็ม: {assignment.maxScore}</span>
-                    {isSubmitted && sub.score != null && (
-                      <span style={{ color: 'var(--accent-primary)', fontWeight: 'bold' }}>
-                        🎯 ได้คะแนน: {sub.score} / {assignment.maxScore}
-                      </span>
+             // Render student data natively!
+             // Filter out generic columns like 'รหัส', 'ชื่อ', 'ที่', 'ลำดับ'
+             const scoreEntries = Object.entries(studentRow).filter(([key, val]) => {
+                if (!key) return false;
+                const k = key.trim().toLowerCase();
+                if (k.includes('รหัส') || k.includes('ชื่อ') || k.includes('สกุล') || k === 'ที่' || k === 'ลำดับ' || k === 'id') return false;
+                return true;
+             });
+
+             return (
+               <div className="card" style={{ marginBottom: '24px', background: 'linear-gradient(145deg, #ffffff, #f5f8ff)' }}>
+                  <div className="card-header" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '12px', marginBottom: '16px' }}>
+                    <span className="card-title">🏆 ข้อมูลคะแนน (อัปเดตล่าสุด)</span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {scoreEntries.length === 0 ? (
+                       <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>ไม่มีข้อมูลคะแนน</p>
+                    ) : (
+                       scoreEntries.map(([key, val], idx) => (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>📝 {key}</span>
+                            <strong style={{ fontFamily: 'var(--font-en)' }}>
+                              {val || '-'}
+                            </strong>
+                          </div>
+                       ))
                     )}
                   </div>
+               </div>
+             );
+          }
 
-                  {assignment.worksheetUrl && !isSubmitted && (
-                    <div className="assignment-actions">
-                      <a
-                        href={assignment.worksheetUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-primary btn-sm"
-                        style={{ width: 'auto', textDecoration: 'none' }}
-                      >
-                        📝 ทำใบงาน
-                      </a>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+          return null;
+        })()}
 
         {/* Edit Profile Modal */}
         {showProfileModal && (
