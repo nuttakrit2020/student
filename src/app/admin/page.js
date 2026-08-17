@@ -2620,10 +2620,11 @@ export default function AdminPage() {
               <div className="form-group" style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '24px' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>📝 ลิงก์ Google Sheet (แยกตามห้อง)</h3>
                 
+                {/* รายการที่เพิ่มแล้ว */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
                   {Object.entries(googleSheetUrls).map(([room, url]) => (
                     <div key={room} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
-                      <span style={{ fontWeight: 600, minWidth: '80px', fontSize: '0.9rem' }}>🏫 {room === 'default' ? 'ทุกห้อง' : room}</span>
+                      <span style={{ fontWeight: 600, minWidth: '80px', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>🏫 {room === 'default' ? 'ทุกห้อง' : room}</span>
                       <input
                         type="url"
                         className="form-input"
@@ -2645,7 +2646,7 @@ export default function AdminPage() {
                           });
                         }}
                       >
-                        ลบ
+                        ✕
                       </button>
                     </div>
                   ))}
@@ -2656,33 +2657,44 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'flex-end', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
-                  <div style={{ flex: '1', minWidth: '120px' }}>
-                    <label style={{ fontSize: '0.85rem' }}>ห้อง (เช่น ม.3/1)</label>
-                    <input type="text" id="new-sheet-room" className="form-input" style={{ padding: '8px' }} placeholder="ม.3/1 หรือเว้นว่าง = ทุกห้อง" />
+                {/* เพิ่มลิงก์ใหม่ */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'flex-end', background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                  <div style={{ flex: '1', minWidth: '140px' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>เลือกห้อง</label>
+                    <select id="new-sheet-room" className="form-input" style={{ padding: '8px' }}>
+                      <option value="default">📌 ทุกห้อง (default)</option>
+                      {(() => {
+                        const allRooms = [...new Set([
+                          ...summaryData.map(s => s.student.room).filter(Boolean),
+                          ...getNormalizedSchedules(classSchedules).map(s => s.room).filter(Boolean)
+                        ])].sort();
+                        return allRooms.map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ));
+                      })()}
+                    </select>
                   </div>
                   <div style={{ flex: '3', minWidth: '250px' }}>
-                    <label style={{ fontSize: '0.85rem' }}>ลิงก์ Google Sheet</label>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>ลิงก์ Google Sheet</label>
                     <input type="url" id="new-sheet-url" className="form-input" style={{ padding: '8px' }} placeholder="https://docs.google.com/spreadsheets/d/..." />
                   </div>
                   <button 
                     className="btn btn-primary" 
-                    style={{ padding: '8px 16px', height: '38px' }}
+                    style={{ padding: '8px 20px', height: '38px', whiteSpace: 'nowrap' }}
                     onClick={() => {
-                      const room = document.getElementById('new-sheet-room').value.trim() || 'default';
+                      const room = document.getElementById('new-sheet-room').value;
                       const url = document.getElementById('new-sheet-url').value.trim();
                       if (!url) return alert('กรุณากรอกลิงก์ Google Sheet');
                       setGoogleSheetUrls(prev => ({ ...prev, [room]: url }));
-                      document.getElementById('new-sheet-room').value = '';
                       document.getElementById('new-sheet-url').value = '';
                     }}
                   >
-                    + เพิ่ม
+                    + เพิ่มลิงก์
                   </button>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '24px' }}>
-                  * เพิ่มลิงก์แยกตามห้อง — เวลาเลือกกรองห้องในแท็บ "สรุปการส่งงาน" จะแสดง Sheet ของห้องนั้น<br/>
-                  * อย่าลืมตั้งค่าแชร์ Sheet ให้อ่าน/แก้ไขได้
+                  * เลือกห้อง → วางลิงก์ → กดเพิ่ม → กดบันทึกการตั้งค่า<br/>
+                  * เวลาเลือกกรองห้องในแท็บ "สรุปการส่งงาน" จะแสดง Sheet ของห้องนั้นโดยอัตโนมัติ
                 </p>
               </div>
               
