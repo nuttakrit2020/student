@@ -2664,10 +2664,9 @@ export default function AdminPage() {
                     <select id="new-sheet-room" className="form-input" style={{ padding: '8px' }}>
                       <option value="default">📌 ทุกห้อง (default)</option>
                       {(() => {
-                        const allRooms = [...new Set([
-                          ...summaryData.map(s => s.student.room).filter(Boolean),
-                          ...getNormalizedSchedules(classSchedules).map(s => s.room).filter(Boolean)
-                        ])].sort();
+                        const allRooms = [...new Set(
+                          summaryData.map(s => s.student.room).filter(Boolean)
+                        )].sort();
                         return allRooms.map(r => (
                           <option key={r} value={r}>{r}</option>
                         ));
