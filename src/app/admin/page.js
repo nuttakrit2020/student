@@ -1371,8 +1371,10 @@ export default function AdminPage() {
                 style={{ minWidth: '200px', border: 'none', background: 'transparent', padding: '0', fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}
                 value={selectedSubject}
                 onChange={(e) => {
-                  setSelectedSubject(e.target.value);
-                  fetchData(adminKey, e.target.value);
+                  const newSubId = e.target.value;
+                  setSelectedSubject(newSubId);
+                  selectedSubjectRef.current = newSubId;
+                  fetchData(adminKey, newSubId);
                 }}
               >
                 {subjects.map(s => (
