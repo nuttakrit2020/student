@@ -1026,6 +1026,40 @@ export default function StudentPage() {
                 return true;
              });
 
+             // Calculate custom metrics based on school rules
+             let tAssignments = 0;
+             let tSubmitted = 0;
+             let countKhad = 0;
+             let countLa = 0;
+             
+             scoreEntries.forEach(([key, val]) => {
+                const k = key.trim();
+                if (k.startsWith('งาน')) {
+                   tAssignments++;
+                   if (val && String(val).trim() !== '0') tSubmitted++;
+                } else if (k === 'ขาด') {
+                   countKhad = parseFloat(val) || 0;
+                } else if (k === 'ลา') {
+                   countLa = parseFloat(val) || 0;
+                }
+             });
+
+             const unsubmitted = tAssignments - tSubmitted;
+             let behaviorScore = 10 - (countKhad * 2) - (countLa * 1);
+             if (behaviorScore < 0) behaviorScore = 0;
+             if (behaviorScore > 10) behaviorScore = 10;
+
+             const calculateGrade = (score) => {
+                if (score >= 80) return '4';
+                if (score >= 75) return '3.5';
+                if (score >= 70) return '3';
+                if (score >= 65) return '2.5';
+                if (score >= 60) return '2';
+                if (score >= 55) return '1.5';
+                if (score >= 50) return '1';
+                return '0';
+             };
+
              // Categorize scores for better UI
              const scoreCategories = {
                 overview: [],
@@ -1036,18 +1070,49 @@ export default function StudentPage() {
              };
 
              scoreEntries.forEach(([key, val]) => {
-                const k = key.toLowerCase();
+                let k = key.trim();
+                let displayKey = k;
+                let displayVal = val;
                 const numVal = parseFloat(val);
-                const isNum = !isNaN(numVal);
-                const item = { key, val, isNum, numVal };
+                let isNum = !isNaN(numVal);
 
-                if (k.includes('รวม') || k.includes('เก็บ') || k === 'สอบ' || k.includes('เกรด') || k.includes('ร้อยละ')) {
+                // Apply custom overrides
+                if (k === 'เก็บ') {
+                   displayKey = 'งานค้างส่ง';
+                   displayVal = String(unsubmitted);
+                   isNum = true;
+                } else if (k === 'สอบ') {
+                   displayKey = 'จิตพิสัย';
+                   displayVal = String(behaviorScore);
+                   isNum = true;
+                } else if (k === 'รวม') {
+                   displayKey = 'คะแนนรวม';
+                   if (isNum) {
+                      const grade = calculateGrade(numVal);
+                      displayVal = `${numVal} (เกรด ${grade})`;
+                   }
+                } else if (k === 'ก่อนกลาง') {
+                   displayKey = 'คะแนนก่อนกลางภาค';
+                } else if (k === 'กลาง') {
+                   displayKey = 'สอบกลางภาค';
+                } else if (k === 'ก่อนปลาย') {
+                   displayKey = 'คะแนนก่อนปลายภาค';
+                } else if (k === 'ปลาย') {
+                   displayKey = 'สอบปลายภาค';
+                } else if (k === 'พิเศษ') {
+                   displayKey = 'คะแนนพิเศษ';
+                }
+
+                const searchKey = displayKey.toLowerCase();
+                const item = { key: displayKey, val: displayVal, isNum, numVal };
+
+                if (searchKey.includes('รวม') || searchKey.includes('ค้างส่ง') || searchKey === 'จิตพิสัย' || searchKey.includes('เกรด')) {
                     scoreCategories.overview.push(item);
-                } else if (k === 'มา' || k === 'ขาด' || k === 'ลา' || k.includes('เลขที่')) {
+                } else if (searchKey === 'มา' || searchKey === 'ขาด' || searchKey === 'ลา' || searchKey.includes('เลขที่')) {
                     scoreCategories.attendance.push(item);
-                } else if (k.includes('กลาง') || k.includes('ปลาย') || k.includes('สอบ') || k.includes('พิเศษ')) {
+                } else if (searchKey.includes('กลาง') || searchKey.includes('ปลาย') || searchKey.includes('สอบ') || searchKey.includes('พิเศษ')) {
                     scoreCategories.exams.push(item);
-                } else if (k.includes('งาน') || k.includes('แบบฝึก') || k.includes('ชิ้น')) {
+                } else if (searchKey.includes('งาน') || searchKey.includes('แบบฝึก') || searchKey.includes('ชิ้น')) {
                     scoreCategories.assignments.push(item);
                 } else {
                     scoreCategories.others.push(item);
