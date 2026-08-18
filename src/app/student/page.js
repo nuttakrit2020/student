@@ -1029,25 +1029,19 @@ export default function StudentPage() {
              // Calculate custom metrics based on school rules
              let tAssignments = 0;
              let tSubmitted = 0;
-             let countKhad = 0;
-             let countLa = 0;
+             let behaviorScore = 0;
              
              scoreEntries.forEach(([key, val]) => {
                 const k = key.trim();
                 if (k.startsWith('งาน')) {
                    tAssignments++;
                    if (val && String(val).trim() !== '0') tSubmitted++;
-                } else if (k === 'ขาด') {
-                   countKhad = parseFloat(val) || 0;
-                } else if (k === 'ลา') {
-                   countLa = parseFloat(val) || 0;
+                } else if (k === 'มา') {
+                   behaviorScore = parseFloat(val) || 0;
                 }
              });
 
              const unsubmitted = tAssignments - tSubmitted;
-             let behaviorScore = 10 - (countKhad * 2) - (countLa * 1);
-             if (behaviorScore < 0) behaviorScore = 0;
-             if (behaviorScore > 10) behaviorScore = 10;
 
              const calculateGrade = (score) => {
                 if (score >= 80) return '4';
@@ -1081,7 +1075,7 @@ export default function StudentPage() {
                    displayKey = 'งานค้างส่ง';
                    displayVal = String(unsubmitted);
                    isNum = true;
-                } else if (k === 'สอบ') {
+                } else if (k === 'มา') {
                    displayKey = 'จิตพิสัย';
                    displayVal = String(behaviorScore);
                    isNum = true;
