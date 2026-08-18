@@ -1026,25 +1026,139 @@ export default function StudentPage() {
                 return true;
              });
 
+             // Categorize scores for better UI
+             const scoreCategories = {
+                overview: [],
+                attendance: [],
+                exams: [],
+                assignments: [],
+                others: []
+             };
+
+             scoreEntries.forEach(([key, val]) => {
+                const k = key.toLowerCase();
+                const numVal = parseFloat(val);
+                const isNum = !isNaN(numVal);
+                const item = { key, val, isNum, numVal };
+
+                if (k.includes('รวม') || k.includes('เก็บ') || k === 'สอบ' || k.includes('เกรด') || k.includes('ร้อยละ')) {
+                    scoreCategories.overview.push(item);
+                } else if (k === 'มา' || k === 'ขาด' || k === 'ลา' || k.includes('เลขที่')) {
+                    scoreCategories.attendance.push(item);
+                } else if (k.includes('กลาง') || k.includes('ปลาย') || k.includes('สอบ') || k.includes('พิเศษ')) {
+                    scoreCategories.exams.push(item);
+                } else if (k.includes('งาน') || k.includes('แบบฝึก') || k.includes('ชิ้น')) {
+                    scoreCategories.assignments.push(item);
+                } else {
+                    scoreCategories.others.push(item);
+                }
+             });
+
+             const renderScoreCard = (item, icon, color) => (
+               <div key={item.key} style={{ 
+                 background: 'var(--bg-primary)', 
+                 borderRadius: '12px', 
+                 padding: '16px', 
+                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                 border: `1px solid ${color}30`,
+                 borderLeft: `4px solid ${color}`,
+                 display: 'flex',
+                 flexDirection: 'column',
+                 gap: '8px',
+                 transition: 'transform 0.2s',
+                 cursor: 'default'
+               }}
+               onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+               onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+               >
+                 <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                   {icon} {item.key}
+                 </span>
+                 <strong style={{ fontSize: '1.5rem', fontFamily: 'var(--font-en)', color: 'var(--text-primary)', lineHeight: 1 }}>
+                   {item.val || '0'}
+                 </strong>
+               </div>
+             );
+
+             const renderListItem = (item, icon) => (
+                <div key={item.key} style={{ 
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '12px 16px', background: 'var(--bg-primary)', borderRadius: '10px',
+                  border: '1px solid var(--border-light)', marginBottom: '8px'
+                }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    <span style={{ background: 'var(--bg-secondary)', padding: '6px', borderRadius: '6px', display: 'flex' }}>{icon}</span>
+                    {item.key}
+                  </span>
+                  <strong style={{ fontFamily: 'var(--font-en)', fontSize: '1.1rem', color: item.numVal === 0 ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                    {item.val || '0'}
+                  </strong>
+                </div>
+             );
+
              return (
-               <div className="card" style={{ marginBottom: '24px', background: 'linear-gradient(145deg, #ffffff, #f5f8ff)' }}>
-                  <div className="card-header" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '12px', marginBottom: '16px' }}>
-                    <span className="card-title">🏆 ข้อมูลคะแนน (อัปเดตล่าสุด)</span>
-                  </div>
+               <div style={{ marginBottom: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {scoreEntries.length === 0 ? (
-                       <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>ไม่มีข้อมูลคะแนน</p>
-                    ) : (
-                       scoreEntries.map(([key, val], idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: 'var(--text-secondary)' }}>📝 {key}</span>
-                            <strong style={{ fontFamily: 'var(--font-en)' }}>
-                              {val || '-'}
-                            </strong>
-                          </div>
-                       ))
+                  {/* Overview Section */}
+                  {scoreCategories.overview.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' }}>
+                       {scoreCategories.overview.map(item => {
+                         let color = '#4facfe';
+                         if (item.key.includes('รวม')) color = '#fbbc04';
+                         if (item.key.includes('เกรด')) color = '#34a853';
+                         return renderScoreCard(item, '🎯', color);
+                       })}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                    
+                    {/* Assignments Section */}
+                    {scoreCategories.assignments.length > 0 && (
+                      <div className="card" style={{ background: 'linear-gradient(to bottom right, #ffffff, #f8faff)', padding: '20px' }}>
+                        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '1.2rem' }}>📝</span>
+                          <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>ภาระงาน</h3>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          {scoreCategories.assignments.map(item => renderListItem(item, '📄'))}
+                        </div>
+                      </div>
                     )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {/* Exams Section */}
+                      {scoreCategories.exams.length > 0 && (
+                        <div className="card" style={{ background: 'linear-gradient(to bottom right, #ffffff, #fffcf5)', padding: '20px' }}>
+                          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '1.2rem' }}>✍️</span>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>การสอบ</h3>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            {scoreCategories.exams.map(item => renderListItem(item, '✏️'))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Attendance & Others Section */}
+                      {(scoreCategories.attendance.length > 0 || scoreCategories.others.length > 0) && (
+                        <div className="card" style={{ background: 'linear-gradient(to bottom right, #ffffff, #f5fff8)', padding: '20px' }}>
+                          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '1.2rem' }}>📊</span>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>ข้อมูลอื่นๆ</h3>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+                            {[...scoreCategories.attendance, ...scoreCategories.others].map(item => (
+                              <div key={item.key} style={{ background: 'var(--bg-primary)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.key}</span>
+                                <strong style={{ fontFamily: 'var(--font-en)', fontSize: '1.2rem' }}>{item.val || '0'}</strong>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                   </div>
                </div>
              );
