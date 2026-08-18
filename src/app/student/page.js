@@ -803,9 +803,11 @@ export default function StudentPage() {
   };
   const roomKey = getRoomKey(student?.room);
   const activeSheetUrl = currentSubject?.googleSheetUrls?.[roomKey] 
+                || currentSubject?.googleSheetUrls?.[student?.room]
                 || currentSubject?.googleSheetUrls?.['default'] 
-                || (currentSubject?.googleSheetUrls ? Object.values(currentSubject.googleSheetUrls)[0] : '')
+                || (currentSubject?.googleSheetUrls && Object.values(currentSubject.googleSheetUrls).length > 0 ? Object.values(currentSubject.googleSheetUrls)[0] : '')
                 || settings?.googleSheetUrls?.[roomKey]
+                || settings?.googleSheetUrls?.[student?.room]
                 || settings?.googleSheetUrls?.['default']
                 || '';
 
