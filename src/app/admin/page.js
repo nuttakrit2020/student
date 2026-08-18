@@ -1248,22 +1248,6 @@ export default function AdminPage() {
     router.push('/');
   };
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="spinner" />
-        <p className="loading-text">กำลังโหลดข้อมูล...</p>
-        {loadProgress > 0 && (
-          <div style={{ width: '200px', height: '6px', background: 'rgba(0,0,0,0.1)', borderRadius: '3px', marginTop: '12px', overflow: 'hidden' }}>
-            <div style={{ width: `${loadProgress}%`, height: '100%', background: 'linear-gradient(90deg, #4facfe, #00f2fe)', borderRadius: '3px', transition: 'width 0.3s ease' }} />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
   // isStudentInSubject and useMemo hooks moved above early returns to fix React Error #310
   const activeSheetUrl = useMemo(() => {
     return filterSummaryRoom && googleSheetUrls[filterSummaryRoom] 
@@ -1342,6 +1326,23 @@ export default function AdminPage() {
       syncSubmitPercentage: sPercentage 
     };
   }, [data?.students, filterSummaryRoom, sheetData]);
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner" />
+        <p className="loading-text">กำลังโหลดข้อมูล...</p>
+        {loadProgress > 0 && (
+          <div style={{ width: '200px', height: '6px', background: 'rgba(0,0,0,0.1)', borderRadius: '3px', marginTop: '12px', overflow: 'hidden' }}>
+            <div style={{ width: `${loadProgress}%`, height: '100%', background: 'linear-gradient(90deg, #4facfe, #00f2fe)', borderRadius: '3px', transition: 'width 0.3s ease' }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
 
 
   return (
