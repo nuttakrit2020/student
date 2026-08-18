@@ -1293,7 +1293,7 @@ export default function AdminPage() {
       .finally(() => setSheetLoading(false));
   }, [activeSheetUrl]);
 
-  const { totalAssignments, submitPercentage } = useMemo(() => {
+  const { totalAssignments, syncSubmitPercentage } = useMemo(() => {
     let tAssignments = 0;
     let tSubmitted = 0;
     
@@ -1339,7 +1339,7 @@ export default function AdminPage() {
 
     return { 
       totalAssignments: tAssignments, 
-      submitPercentage: sPercentage 
+      syncSubmitPercentage: sPercentage 
     };
   }, [data?.students, filterSummaryRoom, sheetData]);
 
@@ -1510,8 +1510,8 @@ export default function AdminPage() {
             <div className="stat-label">📋 จำนวนงาน (ชิ้น)</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: submitPercentage >= 80 ? '#34a853' : (submitPercentage >= 50 ? '#fbbc04' : '#ea4335') }}>
-              {submitPercentage}%
+            <div className="stat-value" style={{ color: syncSubmitPercentage >= 80 ? '#34a853' : (syncSubmitPercentage >= 50 ? '#fbbc04' : '#ea4335') }}>
+              {syncSubmitPercentage}%
             </div>
             <div className="stat-label">✅ อัตราการส่งงาน</div>
           </div>
