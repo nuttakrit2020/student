@@ -949,21 +949,7 @@ export default function StudentPage() {
         {/* Student Calendar */}
         <StudentCalendar attendances={attendances} classSchedules={subjectSchedules} studentRoom={student?.room} />
 
-        {/* Attendance Stats */}
-        <div className="stats-grid" style={{ marginBottom: '24px' }}>
-          <div className="stat-card">
-            <div className="stat-value" style={{ color: '#34a853' }}>{presentCount}</div>
-            <div className="stat-label">มาเรียน</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value" style={{ color: '#fbbc04' }}>{leaveCount}</div>
-            <div className="stat-label">ลา</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value" style={{ color: '#ea4335' }}>{absentCount}</div>
-            <div className="stat-label">ขาด</div>
-          </div>
-        </div>
+        {/* Attendance Stats Removed as requested */}
 
         {/* Google Sheet Summary */}
         <div style={{ marginBottom: '16px' }}>
