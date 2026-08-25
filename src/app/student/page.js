@@ -1065,6 +1065,8 @@ export default function StudentPage() {
 
              scoreEntries.forEach(([key, val]) => {
                 let k = key.trim();
+                if (k === 'สอบ') return; // Hide 'สอบ' from the UI as requested
+                
                 let displayKey = k;
                 let displayVal = val;
                 const numVal = parseFloat(val);
