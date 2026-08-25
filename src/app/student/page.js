@@ -1102,11 +1102,11 @@ export default function StudentPage() {
                 const searchKey = displayKey.toLowerCase();
                 const item = { key: displayKey, val: displayVal, isNum, numVal };
 
-                if (searchKey.includes('รวม') || searchKey.includes('ค้างส่ง') || searchKey === 'จิตพิสัย' || searchKey.includes('เกรด')) {
+                if (searchKey.includes('รวม') || searchKey.includes('ค้างส่ง') || searchKey.includes('เกรด')) {
                     scoreCategories.overview.push(item);
                 } else if (searchKey === 'มา' || searchKey === 'ขาด' || searchKey === 'ลา' || searchKey.includes('เลขที่')) {
                     scoreCategories.attendance.push(item);
-                } else if (searchKey.includes('กลาง') || searchKey.includes('ปลาย') || searchKey.includes('สอบ') || searchKey.includes('พิเศษ')) {
+                } else if (searchKey.includes('กลาง') || searchKey.includes('ปลาย') || searchKey.includes('สอบ') || searchKey.includes('พิเศษ') || searchKey === 'จิตพิสัย') {
                     scoreCategories.exams.push(item);
                 } else if (searchKey.includes('งาน') || searchKey.includes('แบบฝึก') || searchKey.includes('ชิ้น')) {
                     scoreCategories.assignments.push(item);
