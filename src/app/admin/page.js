@@ -1280,36 +1280,21 @@ export default function AdminPage() {
   const { totalAssignments, syncSubmitPercentage } = useMemo(() => {
     let tAssignments = 0;
     let tSubmitted = 0;
-    
-    let students = data?.students || [];
-    if (filterSummaryRoom) {
-      students = students.filter(s => {
-         if (!s.room) return false;
-         const r = s.room.replace(/^ม\.?\s*/, '').trim();
-         return r === filterSummaryRoom;
-      });
-    }
-    const tStudents = students.length;
+    let tStudents = 0;
 
     if (sheetData && sheetData.length > 0) {
       const firstRow = sheetData[0];
       const assignmentCols = Object.keys(firstRow).filter(k => k && k.trim().startsWith('งาน'));
       tAssignments = assignmentCols.length;
 
-      students.forEach(student => {
-         const studentRow = sheetData.find(row => {
-            return Object.values(row).some(val => {
-               if (!val) return false;
-               const sVal = String(val).trim();
-               if (sVal === student.id) return true;
-               if (student.firstName && sVal.includes(student.firstName)) return true;
-               return false;
-            });
-         });
-
-         if (studentRow) {
+      // Calculate based entirely on the Google Sheet data for accuracy
+      sheetData.forEach(row => {
+         // Check if this is a valid student row (has an ID-like field)
+         const hasId = Object.values(row).some(val => val && String(val).trim().length >= 4 && !isNaN(parseInt(val)));
+         if (hasId) {
+            tStudents++;
             assignmentCols.forEach(col => {
-               const val = studentRow[col];
+               const val = row[col];
                if (val && String(val).trim() !== '0') {
                  tSubmitted++;
                }
@@ -1325,7 +1310,7 @@ export default function AdminPage() {
       totalAssignments: tAssignments, 
       syncSubmitPercentage: sPercentage 
     };
-  }, [data?.students, filterSummaryRoom, sheetData]);
+  }, [sheetData]);
 
   if (loading) {
     return (
