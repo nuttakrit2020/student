@@ -4,6 +4,10 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+
+const MySwal = withReactContent(Swal);
 
 function Toast({ message, type, onClose }) {
   useEffect(() => {
