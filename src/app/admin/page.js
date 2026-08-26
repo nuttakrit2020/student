@@ -2655,6 +2655,21 @@ if (activeSheetUrl) {
                   * เวลาเลือกกรองห้องในแท็บ "สรุปการส่งงาน" จะแสดง Sheet ของห้องนั้นโดยอัตโนมัติ
                 </p>
               </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '12px' }}>🤖 ระบบเชื่อมต่อ (API)</h3>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600 }}>🔗 Google Apps Script URL (สำหรับซิงค์ยอดขาด/ลา ลง Google Sheet)</label>
+                  <input 
+                    type="url" 
+                    className="form-input" 
+                    placeholder="https://script.google.com/macros/s/..." 
+                    value={googleAppScriptUrl} 
+                    onChange={e => setGoogleAppScriptUrl(e.target.value)} 
+                  />
+                  <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>ดูวิธีตั้งค่าได้ที่คู่มือทางด้านขวามือ (Artifact)</small>
+                </div>
+              </div>
               
               <button 
                 className="btn btn-primary" 
