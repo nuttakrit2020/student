@@ -459,7 +459,7 @@ function StudentCalendar({ attendances, classSchedules, studentRoom, studentId, 
       MySwal.fire({
         title: 'Admin Mode',
         input: 'password',
-        inputPlaceholder: 'รหัสผ่าน (admin2569)',
+        inputPlaceholder: 'ใส่รหัสผ่านลับ',
         showCancelButton: true
       }).then(res => {
         if (res.isConfirmed && res.value === 'admin2569') {
