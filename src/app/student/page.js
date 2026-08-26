@@ -441,8 +441,91 @@ function LeaveRequestModal({ student, subjectId, onClose, onSuccess }) {
   );
 }
 
-function StudentCalendar({ attendances, classSchedules, studentRoom }) {
+function StudentCalendar({ attendances, classSchedules, studentRoom, studentId, subjectId, onRefresh }) {
   const [monthOffset, setMonthOffset] = useState(0);
+  const [adminMode, setAdminMode] = useState(false);
+  const clickCount = useRef(0);
+  const clickTimer = useRef(null);
+
+  const handleTitleClick = () => {
+    clickCount.current += 1;
+    if (clickTimer.current) clearTimeout(clickTimer.current);
+    clickTimer.current = setTimeout(() => {
+      clickCount.current = 0;
+    }, 1500);
+
+    if (clickCount.current >= 5) {
+      clickCount.current = 0;
+      MySwal.fire({
+        title: 'Admin Mode',
+        input: 'password',
+        inputPlaceholder: 'รหัสผ่าน (admin2569)',
+        showCancelButton: true
+      }).then(res => {
+        if (res.isConfirmed && res.value === 'admin2569') {
+          setAdminMode(true);
+          MySwal.fire({ icon: 'success', title: 'ปลดล็อกแล้ว', text: 'คลิกที่วันที่เพื่อแก้ไขข้อมูลเช็คชื่อได้เลยครับ', timer: 2000, showConfirmButton: false });
+        } else if (res.isConfirmed) {
+          MySwal.fire({ icon: 'error', title: 'รหัสผิด' });
+        }
+      });
+    }
+  };
+
+  const handleDayClick = (dateStr, att) => {
+    if (!adminMode || !studentId || !subjectId) return;
+
+    MySwal.fire({
+      title: `แก้ไขข้อมูล: ${dateStr}`,
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: '✅ มาเรียน',
+      denyButtonText: '🟡 ลา',
+      cancelButtonText: '❌ ลบข้อมูล (ขาด)',
+      confirmButtonColor: '#34a853',
+      denyButtonColor: '#fbbc04',
+      cancelButtonColor: '#ea4335',
+    }).then(async (result) => {
+      try {
+        if (result.isConfirmed) {
+          // Present
+          if (att) {
+             await fetch(`/api/attendance?id=${att.id}&adminKey=admin2569`, { method: 'DELETE' });
+          }
+          await fetch('/api/attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+               studentId, subjectId, type: 'present', adminKey: 'admin2569', timestamp: dateStr + 'T08:00:00+07:00'
+            })
+          });
+          onRefresh();
+        } else if (result.isDenied) {
+          // Leave
+          if (att) {
+             await fetch(`/api/attendance?id=${att.id}&adminKey=admin2569`, { method: 'DELETE' });
+          }
+          await fetch('/api/attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+               studentId, subjectId, type: 'leave', reason: 'ลากิจ/ลาป่วย (แก้ไขโดยครู)', adminKey: 'admin2569', timestamp: dateStr + 'T08:00:00+07:00'
+            })
+          });
+          onRefresh();
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+          // Delete
+          if (att) {
+             await fetch(`/api/attendance?id=${att.id}&adminKey=admin2569`, { method: 'DELETE' });
+             onRefresh();
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  };
+
 
   const getNormalizedSchedules = (scheds) => {
     if (!scheds) return [];
@@ -484,7 +567,7 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
   return (
     <div className="card" style={{ marginBottom: '16px' }}>
       <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span className="card-title">📅 ปฏิทินเช็คชื่อ</span>
+        <span className="card-title" onClick={handleTitleClick} style={{ cursor: 'pointer', userSelect: 'none' }}>📅 ปฏิทินเช็คชื่อ {adminMode && <span style={{color:'red', fontSize:'0.7rem'}}>[EDIT MODE]</span>}</span>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setMonthOffset(o => o - 1)} style={{ padding: '4px 8px' }}>◀</button>
           <span style={{ fontWeight: 600, fontSize: '0.9rem', minWidth: '100px', textAlign: 'center' }}>{monthName}</span>
@@ -557,8 +640,9 @@ function StudentCalendar({ attendances, classSchedules, studentRoom }) {
           }
           
           return (
-            <div key={dateStr} style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div key={dateStr} style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDayClick(dateStr, att)}>
               <div style={{
+                cursor: adminMode ? 'pointer' : 'default',
                 width: '30px', height: '30px', borderRadius: '50%',
                 background: circleColor, color: textColor,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -947,7 +1031,7 @@ export default function StudentPage() {
         </div>
 
         {/* Student Calendar */}
-        <StudentCalendar attendances={attendances} classSchedules={subjectSchedules} studentRoom={student?.room} />
+        <StudentCalendar attendances={attendances} classSchedules={subjectSchedules} studentRoom={student?.room} studentId={student?.id} subjectId={selectedSubject} onRefresh={() => fetchData(student, selectedSubject)} />
 
         {/* Attendance Stats Removed as requested */}
 
