@@ -469,7 +469,6 @@ export default function AdminPage() {
   };
 
   // Drag to check states
-  const [isDragging, setIsDragging] = useState(false);
   const [dragTargetStatus, setDragTargetStatus] = useState(null);
 
   
