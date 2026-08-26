@@ -2219,10 +2219,37 @@ if (activeSheetUrl) {
                                   title={tooltip}
                                   onClick={() => {
                                     if (isClassDay && !isFuture) {
-                                      setEditingCell({
-                                        student,
-                                        dateStr,
-                                        att
+                                      const isoDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T08:00:00+07:00`;
+                                      MySwal.fire({
+                                        title: `แก้ไขเช็คชื่อ: ${student.nickname || student.name || student.id}`,
+                                        text: `วันที่: ${dateStr}`,
+                                        showDenyButton: true,
+                                        showCancelButton: true,
+                                        confirmButtonText: '✅ มาเรียน',
+                                        denyButtonText: '🟡 ลา',
+                                        cancelButtonText: '❌ ลบข้อมูล (ขาด)',
+                                        confirmButtonColor: '#34a853',
+                                        denyButtonColor: '#fbbc04',
+                                        cancelButtonColor: '#ea4335',
+                                      }).then(async (result) => {
+                                        try {
+                                          if (result.isConfirmed) {
+                                            if (att) await fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
+                                            await fetch('/api/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ studentId: student.id, subjectId: selectedSubject, type: 'present', adminKey, timestamp: isoDateStr }) });
+                                            fetchData(adminKey, selectedSubject);
+                                          } else if (result.isDenied) {
+                                            if (att) await fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
+                                            await fetch('/api/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ studentId: student.id, subjectId: selectedSubject, type: 'leave', reason: 'ลากิจ/ลาป่วย (แก้ไขโดยครู)', adminKey, timestamp: isoDateStr }) });
+                                            fetchData(adminKey, selectedSubject);
+                                          } else if (result.dismiss === Swal.DismissReason.cancel) {
+                                            if (att) {
+                                              await fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
+                                              fetchData(adminKey, selectedSubject);
+                                            }
+                                          }
+                                        } catch (e) {
+                                          console.error(e);
+                                        }
                                       });
                                     }
                                   }}
