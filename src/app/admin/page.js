@@ -2235,20 +2235,34 @@ if (activeSheetUrl) {
                                         confirmButtonColor: '#34a853',
                                         denyButtonColor: '#fbbc04',
                                         cancelButtonColor: '#ea4335',
-                                      }).then(async (result) => {
+                                      }).then((result) => {
                                         try {
                                           if (result.isConfirmed) {
-                                            if (att) await fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
-                                            await fetch('/api/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ studentId: student.id, subjectId: selectedSubject, type: 'present', adminKey, timestamp: isoDateStr }) });
-                                            fetchData(adminKey, selectedSubject);
+                                            // Optimistic Update
+                                            const newAttId = crypto.randomUUID();
+                                            setAttendances(prev => {
+                                               const filtered = prev.filter(a => !(att && a.id === att.id));
+                                               return [...filtered, { id: newAttId, studentId: student.id, subjectId: selectedSubject, type: 'present', status: 'approved', timestamp: isoDateStr, createdAt: isoDateStr }];
+                                            });
+                                            // API call in background
+                                            if (att) fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
+                                            fetch('/api/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ studentId: student.id, subjectId: selectedSubject, type: 'present', adminKey, timestamp: isoDateStr }) });
                                           } else if (result.isDenied) {
-                                            if (att) await fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
-                                            await fetch('/api/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ studentId: student.id, subjectId: selectedSubject, type: 'leave', reason: 'ลากิจ/ลาป่วย (แก้ไขโดยครู)', adminKey, timestamp: isoDateStr }) });
-                                            fetchData(adminKey, selectedSubject);
+                                            // Optimistic Update
+                                            const newAttId = crypto.randomUUID();
+                                            setAttendances(prev => {
+                                               const filtered = prev.filter(a => !(att && a.id === att.id));
+                                               return [...filtered, { id: newAttId, studentId: student.id, subjectId: selectedSubject, type: 'leave', status: 'approved', reason: 'ลากิจ/ลาป่วย (แก้ไขโดยครู)', timestamp: isoDateStr, createdAt: isoDateStr }];
+                                            });
+                                            // API call in background
+                                            if (att) fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
+                                            fetch('/api/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ studentId: student.id, subjectId: selectedSubject, type: 'leave', reason: 'ลากิจ/ลาป่วย (แก้ไขโดยครู)', adminKey, timestamp: isoDateStr }) });
                                           } else if (result.dismiss === Swal.DismissReason.cancel) {
                                             if (att) {
-                                              await fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
-                                              fetchData(adminKey, selectedSubject);
+                                              // Optimistic Update
+                                              setAttendances(prev => prev.filter(a => a.id !== att.id));
+                                              // API call in background
+                                              fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
                                             }
                                           }
                                         } catch (e) {
