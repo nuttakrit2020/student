@@ -444,6 +444,12 @@ function LeaveRequestModal({ student, subjectId, onClose, onSuccess }) {
 function StudentCalendar({ attendances, classSchedules, studentRoom, studentId, subjectId, onRefresh }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [adminMode, setAdminMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('adminMode') === 'true') {
+      setAdminMode(true);
+    }
+  }, []);
   const clickCount = useRef(0);
   const clickTimer = useRef(null);
 
@@ -464,7 +470,8 @@ function StudentCalendar({ attendances, classSchedules, studentRoom, studentId, 
       }).then(res => {
         if (res.isConfirmed && res.value === 'admin2569') {
           setAdminMode(true);
-          MySwal.fire({ icon: 'success', title: 'ปลดล็อกแล้ว', text: 'คลิกที่วันที่เพื่อแก้ไขข้อมูลเช็คชื่อได้เลยครับ', timer: 2000, showConfirmButton: false });
+          if (typeof window !== 'undefined') sessionStorage.setItem('adminMode', 'true');
+          MySwal.fire({ icon: 'success', title: 'ปลดล็อกแล้ว', text: 'คลิกที่วันที่เพื่อแก้ไขข้อมูลเช็คชื่อได้เลยครับ (ปลดล็อกค้างไว้จนกว่าจะปิดเบราว์เซอร์)', timer: 2000, showConfirmButton: false });
         } else if (res.isConfirmed) {
           MySwal.fire({ icon: 'error', title: 'รหัสผิด' });
         }
