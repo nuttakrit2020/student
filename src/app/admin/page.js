@@ -1615,35 +1615,68 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {(() => {
-              const activeSheetUrl = filterSummaryRoom && googleSheetUrls[filterSummaryRoom] 
-                ? googleSheetUrls[filterSummaryRoom] 
-                : (!filterSummaryRoom && Object.keys(googleSheetUrls).length > 0) 
-                  ? (googleSheetUrls['default'] || Object.values(googleSheetUrls)[0] || '') 
-                  : '';
+            <div className="table-responsive" style={{ marginTop: '16px' }}>
+              <table className="table" style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-secondary)', borderBottom: '2px solid var(--border-color)' }}>
+                    <th style={{ padding: '12px', textAlign: 'center', width: '60px' }}>เลขที่</th>
+                    <th style={{ padding: '12px', textAlign: 'center', width: '100px' }}>รหัสประจำตัว</th>
+                    <th style={{ padding: '12px', textAlign: 'left' }}>ชื่อ-สกุล</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>ห้อง</th>
+                    <th style={{ padding: '12px', textAlign: 'center', background: '#e6f4ea', color: '#137333' }}>มา</th>
+                    <th style={{ padding: '12px', textAlign: 'center', background: '#fce8e6', color: '#c5221f' }}>ขาด (สะสม)</th>
+                    <th style={{ padding: '12px', textAlign: 'center', background: '#fef7e0', color: '#b06000' }}>ลา</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>คะแนนงาน</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>จิตพิสัย</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaryData
+                    .filter(s => !filterSummaryRoom || (s.student.room || '').replace(/^ม\.?\s*/, '').trim() === filterSummaryRoom.replace(/^ม\.?\s*/, '').trim())
+                    .sort((a, b) => {
+                       const roomA = a.student.room || '';
+                       const roomB = b.student.room || '';
+                       if (roomA !== roomB) return roomA.localeCompare(roomB, 'th');
+                       const numA = parseInt(a.student.number) || 999;
+                       const numB = parseInt(b.student.number) || 999;
+                       return numA - numB;
+                    })
+                    .map((row, idx) => {
+                       const student = row.student;
+                       const stats = attendanceStats[student.id] || { present: 0, leave: 0, absent: 0 };
+                       const totalClasses = stats.present + stats.leave + stats.absent;
+                       
+                       const totalKhad = stats.absent + (stats.leave * 0.5);
+                       const totalMa = totalClasses - totalKhad;
+                       
+                       const assignmentScore = Object.values(row.submissions).reduce((sum, s) => sum + (Number(s.score) || 0), 0);
+                       const behaviorScore = Math.max(0, 10 - (stats.absent * 2) - (stats.leave * 1));
 
-if (activeSheetUrl) {
-                return (
-                  <div className="google-sheet-wrapper" style={{ width: '100%', height: '800px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', marginTop: '16px' }}>
-                    <iframe 
-                      key={activeSheetUrl}
-                      src={activeSheetUrl}
-                      width="100%" 
-                      height="100%" 
-                      style={{ border: 'none' }}
-                      title="Google Sheet Summary"
-                    />
-                  </div>
-                );
-              }
-
-              return (
-                <div className="empty-state">
-                  <div className="icon">📊</div>
-                  <p>โปรดตั้งค่าลิงก์ Google Sheet ในเมนู "ตั้งค่าระบบ"</p>
-                </div>
-              );
-            })()}
+                       return (
+                         <tr key={student.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                           <td style={{ padding: '12px', textAlign: 'center' }}>{student.number || '-'}</td>
+                           <td style={{ padding: '12px', textAlign: 'center' }}>{student.id}</td>
+                           <td style={{ padding: '12px', textAlign: 'left' }}>{student.title}{student.firstName} {student.lastName}</td>
+                           <td style={{ padding: '12px', textAlign: 'center' }}>{student.room || '-'}</td>
+                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#137333' }}>{totalMa}</td>
+                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#c5221f' }}>{totalKhad}</td>
+                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#b06000' }}>{stats.leave}</td>
+                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>{assignmentScore}</td>
+                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>{behaviorScore}</td>
+                         </tr>
+                       );
+                    })
+                  }
+                  {summaryData.filter(s => !filterSummaryRoom || (s.student.room || '').replace(/^ม\.?\s*/, '').trim() === filterSummaryRoom.replace(/^ม\.?\s*/, '').trim()).length === 0 && (
+                    <tr>
+                      <td colSpan="9" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        ไม่พบข้อมูลนักเรียน
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
