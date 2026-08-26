@@ -1606,6 +1606,98 @@ export default function AdminPage() {
                   })()}
                 </select>
                 <button
+                  className="btn btn-sm"
+                  style={{ width: 'auto', padding: '6px 16px', fontSize: '0.9rem', whiteSpace: 'nowrap', background: '#34a853', color: 'white', border: 'none' }}
+                  onClick={async () => {
+                     if (!googleAppScriptUrl) {
+                        return MySwal.fire({ icon: 'warning', title: 'ยังไม่ได้ตั้งค่า API', text: 'กรุณาตั้งค่า Google Apps Script URL ในหน้าตั้งค่าก่อนครับ' });
+                     }
+                     const room = filterSummaryRoom || Object.keys(googleSheetUrls)[0];
+                     if (!room) return MySwal.fire({ icon: 'error', title: 'ไม่พบข้อมูลห้องเรียน' });
+                     
+                     let sheetUrl = googleSheetUrls[room] || googleSheetUrls['default'];
+                     if (!sheetUrl) {
+                        const cleanedTarget = room.replace(/^ม\.?\s*/, '').trim();
+                        for (const [k, url] of Object.entries(googleSheetUrls)) {
+                           if (k.replace(/^ม\.?\s*/, '').trim() === cleanedTarget) {
+                              sheetUrl = url;
+                              break;
+                           }
+                        }
+                     }
+                     if (!sheetUrl) return MySwal.fire({ icon: 'error', title: 'ไม่พบลิงก์ Google Sheet สำหรับห้องนี้' });
+
+                     MySwal.fire({
+                        title: 'กำลังซิงค์ข้อมูล...',
+                        html: 'กำลังคำนวณและส่งยอด ขาด/มา ลง Google Sheet<br>กรุณารอสักครู่...',
+                        allowOutsideClick: false,
+                        didOpen: () => MySwal.showLoading()
+                     });
+
+                     const studentsForRoom = summaryData.filter(s => {
+                        if (!room) return true;
+                        const sRoom = (s.student.room || '').replace(/^ม\.?\s*/, '').trim();
+                        const targetRoom = room.replace(/^ม\.?\s*/, '').trim();
+                        return sRoom === targetRoom;
+                     }).map(s => s.student);
+                     
+                     const startOfWeek = new Date();
+                     startOfWeek.setHours(0,0,0,0);
+                     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
+                     const endOfWeek = new Date(startOfWeek);
+                     endOfWeek.setDate(startOfWeek.getDate() + 4);
+
+                     const updates = studentsForRoom.map(student => {
+                        const roomScheds = getNormalizedSchedules(classSchedules).filter(s => {
+                          const cleanedRoom = (student.room || '').replace(/^ม\.?\s*/, '').trim();
+                          return s.room === cleanedRoom || s.room === student.room;
+                        });
+                        const classDays = roomScheds.map(s => s.day);
+                        
+                        let khadCount = 0;
+                        let laCount = 0;
+                        let totalClassDays = 0;
+                        
+                        for (let d = new Date(startOfWeek); d <= endOfWeek; d.setDate(d.getDate() + 1)) {
+                           const jsDay = d.getDay() === 0 ? 7 : d.getDay();
+                           const dateStrIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                           if (classDays.length > 0 && (!classDays.includes(jsDay) || holidays.includes(dateStrIso))) continue;
+                           if (d <= new Date()) totalClassDays++;
+                           const dateStr = d.toLocaleDateString('th-TH');
+                           const att = attendances.find(a => a.studentId === student.id && new Date(a.timestamp).toLocaleDateString('th-TH') === dateStr);
+                           if (att) {
+                              if (att.type === 'leave') laCount++;
+                           } else {
+                              if (d < new Date()) khadCount++;
+                           }
+                        }
+                        
+                        const totalKhad = khadCount + (laCount * 0.5);
+                        const totalMa = totalClassDays - totalKhad;
+                        
+                        return { studentId: student.id, khad: totalKhad, ma: totalMa };
+                     });
+
+                     try {
+                        const res = await fetch('/api/sync-sheet', {
+                           method: 'POST',
+                           headers: { 'Content-Type': 'application/json' },
+                           body: JSON.stringify({ adminKey, sheetUrl, updates })
+                        });
+                        const result = await res.json();
+                        if (result.error) {
+                           MySwal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: result.error });
+                        } else {
+                           MySwal.fire({ icon: 'success', title: 'ซิงค์ข้อมูลสำเร็จ!', text: `อัปเดตข้อมูลนักเรียน ${result.updated} คน ลงใน Google Sheet เรียบร้อยแล้ว` });
+                        }
+                     } catch (err) {
+                        MySwal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message });
+                     }
+                  }}
+                >
+                  🔄 ซิงค์ยอด ขาด/มา ลง Sheet
+                </button>
+                <button
                   className="btn btn-sm btn-primary"
                   onClick={handleExportExcel}
                   style={{ width: 'auto', padding: '6px 16px', fontSize: '0.9rem', whiteSpace: 'nowrap' }}
@@ -1615,79 +1707,35 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="table-responsive" style={{ marginTop: '16px' }}>
-              <table className="table" style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg-secondary)', borderBottom: '2px solid var(--border-color)' }}>
-                    <th style={{ padding: '12px', textAlign: 'center', width: '60px' }}>เลขที่</th>
-                    <th style={{ padding: '12px', textAlign: 'center', width: '100px' }}>รหัสประจำตัว</th>
-                    <th style={{ padding: '12px', textAlign: 'left' }}>ชื่อ-สกุล</th>
-                    <th style={{ padding: '12px', textAlign: 'center' }}>ห้อง</th>
-                    <th style={{ padding: '12px', textAlign: 'center', background: '#e6f4ea', color: '#137333' }}>มา</th>
-                    <th style={{ padding: '12px', textAlign: 'center', background: '#fce8e6', color: '#c5221f' }}>ขาด (สะสม)</th>
-                    <th style={{ padding: '12px', textAlign: 'center', background: '#fef7e0', color: '#b06000' }}>ลา</th>
-                    {assignments.map(a => (
-                      <th key={a.id} style={{ padding: '12px', textAlign: 'center' }} title={a.title}>
-                        <div style={{ maxWidth: '100px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.title}</div>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>({a.maxScore})</span>
-                      </th>
-                    ))}
-                    <th style={{ padding: '12px', textAlign: 'center' }}>รวมคะแนนงาน</th>
-                    <th style={{ padding: '12px', textAlign: 'center' }}>จิตพิสัย</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summaryData
-                    .filter(s => !filterSummaryRoom || (s.student.room || '').replace(/^ม\.?\s*/, '').trim() === filterSummaryRoom.replace(/^ม\.?\s*/, '').trim())
-                    .sort((a, b) => {
-                       const roomA = a.student.room || '';
-                       const roomB = b.student.room || '';
-                       if (roomA !== roomB) return roomA.localeCompare(roomB, 'th');
-                       const numA = parseInt(a.student.number) || 999;
-                       const numB = parseInt(b.student.number) || 999;
-                       return numA - numB;
-                    })
-                    .map((row, idx) => {
-                       const student = row.student;
-                       const stats = attendanceStats[student.id] || { present: 0, leave: 0, absent: 0 };
-                       const totalClasses = stats.present + stats.leave + stats.absent;
-                       
-                       const totalKhad = stats.absent + (stats.leave * 0.5);
-                       const totalMa = totalClasses - totalKhad;
-                       
-                       const assignmentScore = Object.values(row.submissions).reduce((sum, s) => sum + (Number(s.score) || 0), 0);
-                       const behaviorScore = Math.max(0, 10 - (stats.absent * 2) - (stats.leave * 1));
+            {(() => {
+              const activeSheetUrl = filterSummaryRoom && googleSheetUrls[filterSummaryRoom] 
+                ? googleSheetUrls[filterSummaryRoom] 
+                : (!filterSummaryRoom && Object.keys(googleSheetUrls).length > 0) 
+                  ? (googleSheetUrls['default'] || Object.values(googleSheetUrls)[0] || '') 
+                  : '';
 
-                       return (
-                         <tr key={student.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                           <td style={{ padding: '12px', textAlign: 'center' }}>{student.number || '-'}</td>
-                           <td style={{ padding: '12px', textAlign: 'center' }}>{student.id}</td>
-                           <td style={{ padding: '12px', textAlign: 'left' }}>{student.title}{student.firstName} {student.lastName}</td>
-                           <td style={{ padding: '12px', textAlign: 'center' }}>{student.room || '-'}</td>
-                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#137333' }}>{totalMa}</td>
-                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#c5221f' }}>{totalKhad}</td>
-                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#b06000' }}>{stats.leave}</td>
-                           {assignments.map(a => {
-                              const sub = row.submissions[a.id];
-                              const score = sub ? (Number(sub.score) || 0) : 0;
-                              return <td key={a.id} style={{ padding: '12px', textAlign: 'center', color: score === 0 ? 'var(--text-secondary)' : 'inherit' }}>{score}</td>;
-                           })}
-                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>{assignmentScore}</td>
-                           <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>{behaviorScore}</td>
-                         </tr>
-                       );
-                    })
-                  }
-                  {summaryData.filter(s => !filterSummaryRoom || (s.student.room || '').replace(/^ม\.?\s*/, '').trim() === filterSummaryRoom.replace(/^ม\.?\s*/, '').trim()).length === 0 && (
-                    <tr>
-                      <td colSpan={9 + assignments.length} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                        ไม่พบข้อมูลนักเรียน
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+              if (activeSheetUrl) {
+                return (
+                  <div className="google-sheet-wrapper" style={{ width: '100%', height: '800px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', marginTop: '16px' }}>
+                    <iframe 
+                      key={activeSheetUrl}
+                      src={activeSheetUrl}
+                      width="100%" 
+                      height="100%" 
+                      style={{ border: 'none' }}
+                      title="Google Sheet Summary"
+                    />
+                  </div>
+                );
+              }
+
+              return (
+                <div className="empty-state">
+                  <div className="icon">📊</div>
+                  <p>โปรดตั้งค่าลิงก์ Google Sheet ในเมนู "ตั้งค่าระบบ"</p>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -2704,6 +2752,21 @@ export default function AdminPage() {
               </div>
 
 
+              
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '12px' }}>🤖 ระบบเชื่อมต่อ (API)</h3>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 600 }}>🔗 Google Apps Script URL (สำหรับซิงค์ยอดขาด/ลา ลง Google Sheet)</label>
+                  <input 
+                    type="url" 
+                    className="form-input" 
+                    placeholder="https://script.google.com/macros/s/..." 
+                    value={googleAppScriptUrl} 
+                    onChange={e => setGoogleAppScriptUrl(e.target.value)} 
+                  />
+                  <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>ดูวิธีตั้งค่าได้ที่คู่มือทางด้านขวามือ (Artifact)</small>
+                </div>
+              </div>
               
               <div style={{ marginBottom: '24px' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '12px' }}>🏖️ วันหยุด / วันยกเลิกคลาส (ระบบจะไม่นับขาดในวันนี้)</h3>
