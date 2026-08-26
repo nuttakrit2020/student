@@ -1626,7 +1626,13 @@ export default function AdminPage() {
                     <th style={{ padding: '12px', textAlign: 'center', background: '#e6f4ea', color: '#137333' }}>มา</th>
                     <th style={{ padding: '12px', textAlign: 'center', background: '#fce8e6', color: '#c5221f' }}>ขาด (สะสม)</th>
                     <th style={{ padding: '12px', textAlign: 'center', background: '#fef7e0', color: '#b06000' }}>ลา</th>
-                    <th style={{ padding: '12px', textAlign: 'center' }}>คะแนนงาน</th>
+                    {assignments.map(a => (
+                      <th key={a.id} style={{ padding: '12px', textAlign: 'center' }} title={a.title}>
+                        <div style={{ maxWidth: '100px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.title}</div>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>({a.maxScore})</span>
+                      </th>
+                    ))}
+                    <th style={{ padding: '12px', textAlign: 'center' }}>รวมคะแนนงาน</th>
                     <th style={{ padding: '12px', textAlign: 'center' }}>จิตพิสัย</th>
                   </tr>
                 </thead>
@@ -1661,6 +1667,11 @@ export default function AdminPage() {
                            <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#137333' }}>{totalMa}</td>
                            <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#c5221f' }}>{totalKhad}</td>
                            <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#b06000' }}>{stats.leave}</td>
+                           {assignments.map(a => {
+                              const sub = row.submissions[a.id];
+                              const score = sub ? (Number(sub.score) || 0) : 0;
+                              return <td key={a.id} style={{ padding: '12px', textAlign: 'center', color: score === 0 ? 'var(--text-secondary)' : 'inherit' }}>{score}</td>;
+                           })}
                            <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>{assignmentScore}</td>
                            <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>{behaviorScore}</td>
                          </tr>
@@ -1669,7 +1680,7 @@ export default function AdminPage() {
                   }
                   {summaryData.filter(s => !filterSummaryRoom || (s.student.room || '').replace(/^ม\.?\s*/, '').trim() === filterSummaryRoom.replace(/^ม\.?\s*/, '').trim()).length === 0 && (
                     <tr>
-                      <td colSpan="9" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      <td colSpan={9 + assignments.length} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                         ไม่พบข้อมูลนักเรียน
                       </td>
                     </tr>
