@@ -405,6 +405,8 @@ export default function AdminPage() {
   const [qrCode, setQrCode] = useState('');
   const [showQrCode, setShowQrCode] = useState(true);
   const [adminAvatarUrl, setAdminAvatarUrl] = useState('');
+  const [holidays, setHolidays] = useState([]);
+  const [newHoliday, setNewHoliday] = useState('');
   const [googleAppScriptUrl, setGoogleAppScriptUrl] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
@@ -676,8 +678,9 @@ export default function AdminPage() {
       const dates = [];
       let d = new Date(startOfSemester);
       while (d <= todayDate) {
-        if (daysSet.has(d.getDay())) {
-          dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+        const dateStrIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (daysSet.has(d.getDay()) && !holidays.includes(dateStrIso)) {
+          dates.push(dateStrIso);
         }
         d.setDate(d.getDate() + 1);
       }
@@ -2747,6 +2750,28 @@ if (activeSheetUrl) {
                 </p>
               </div>
 
+              </div>
+              
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '12px' }}>🏖️ วันหยุด / วันยกเลิกคลาส (ระบบจะไม่นับขาดในวันนี้)</h3>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                  {holidays.map(h => (
+                    <span key={h} style={{ background: '#fce8e6', color: '#c5221f', padding: '4px 12px', borderRadius: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {new Date(h).toLocaleDateString('th-TH')}
+                      <button className="btn btn-sm" style={{ padding: 0, background: 'transparent', color: '#c5221f', fontSize: '1rem' }} onClick={() => setHolidays(prev => prev.filter(x => x !== h))}>×</button>
+                    </span>
+                  ))}
+                  {holidays.length === 0 && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>ยังไม่ได้เพิ่มวันหยุด</span>}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input type="date" className="form-input" style={{ width: 'auto' }} value={newHoliday} onChange={e => setNewHoliday(e.target.value)} />
+                  <button className="btn btn-secondary btn-sm" onClick={() => {
+                    if (!newHoliday) return;
+                    if (holidays.includes(newHoliday)) return;
+                    setHolidays(prev => [...prev, newHoliday].sort());
+                    setNewHoliday('');
+                  }}>+ เพิ่มวันหยุด</button>
+                </div>
               </div>
               
               <button 
