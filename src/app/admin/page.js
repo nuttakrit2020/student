@@ -1606,97 +1606,6 @@ export default function AdminPage() {
                   })()}
                 </select>
                 <button
-                  className="btn btn-sm"
-                  style={{ width: 'auto', padding: '6px 16px', fontSize: '0.9rem', whiteSpace: 'nowrap', background: '#34a853', color: 'white', border: 'none' }}
-                  onClick={async () => {
-                     if (!googleAppScriptUrl) {
-                        return MySwal.fire({ icon: 'warning', title: 'ยังไม่ได้ตั้งค่า API', text: 'กรุณาตั้งค่า Google Apps Script URL ในหน้าตั้งค่าก่อนครับ' });
-                     }
-                     const room = filterSummaryRoom || Object.keys(googleSheetUrls)[0];
-                     if (!room) return MySwal.fire({ icon: 'error', title: 'ไม่พบข้อมูลห้องเรียน' });
-                     
-                     let sheetUrl = googleSheetUrls[room] || googleSheetUrls['default'];
-                     if (!sheetUrl) {
-                        const cleanedTarget = room.replace(/^ม\.?\s*/, '').trim();
-                        for (const [k, url] of Object.entries(googleSheetUrls)) {
-                           if (k.replace(/^ม\.?\s*/, '').trim() === cleanedTarget) {
-                              sheetUrl = url;
-                              break;
-                           }
-                        }
-                     }
-                     if (!sheetUrl) return MySwal.fire({ icon: 'error', title: 'ไม่พบลิงก์ Google Sheet สำหรับห้องนี้' });
-
-                     MySwal.fire({
-                        title: 'กำลังซิงค์ข้อมูล...',
-                        html: 'กำลังคำนวณและส่งยอด ขาด/มา ลง Google Sheet<br>กรุณารอสักครู่...',
-                        allowOutsideClick: false,
-                        didOpen: () => MySwal.showLoading()
-                     });
-
-                     const studentsForRoom = summaryData.filter(s => {
-                        if (!room) return true;
-                        const sRoom = (s.student.room || '').replace(/^ม\.?\s*/, '').trim();
-                        const targetRoom = room.replace(/^ม\.?\s*/, '').trim();
-                        return sRoom === targetRoom;
-                     }).map(s => s.student);
-                     
-                     const startOfWeek = new Date();
-                     startOfWeek.setHours(0,0,0,0);
-                     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
-                     const endOfWeek = new Date(startOfWeek);
-                     endOfWeek.setDate(startOfWeek.getDate() + 4);
-
-                     const updates = studentsForRoom.map(student => {
-                        const roomScheds = getNormalizedSchedules(classSchedules).filter(s => {
-                          const cleanedRoom = (student.room || '').replace(/^ม\.?\s*/, '').trim();
-                          return s.room === cleanedRoom || s.room === student.room;
-                        });
-                        const classDays = roomScheds.map(s => s.day);
-                        
-                        let khadCount = 0;
-                        let laCount = 0;
-                        let totalClassDays = 0;
-                        
-                        for (let d = new Date(startOfWeek); d <= endOfWeek; d.setDate(d.getDate() + 1)) {
-                           const jsDay = d.getDay() === 0 ? 7 : d.getDay();
-                           if (classDays.length > 0 && !classDays.includes(jsDay)) continue;
-                           if (d <= new Date()) totalClassDays++;
-                           const dateStr = d.toLocaleDateString('th-TH');
-                           const att = attendances.find(a => a.studentId === student.id && new Date(a.timestamp).toLocaleDateString('th-TH') === dateStr);
-                           if (att) {
-                              if (att.type === 'leave') laCount++;
-                           } else {
-                              if (d < new Date()) khadCount++;
-                           }
-                        }
-                        
-                        const totalKhad = khadCount + (laCount * 0.5);
-                        const totalMa = totalClassDays - totalKhad;
-                        
-                        return { studentId: student.id, khad: totalKhad, ma: totalMa };
-                     });
-
-                     try {
-                        const res = await fetch('/api/sync-sheet', {
-                           method: 'POST',
-                           headers: { 'Content-Type': 'application/json' },
-                           body: JSON.stringify({ adminKey, sheetUrl, updates })
-                        });
-                        const result = await res.json();
-                        if (result.error) {
-                           MySwal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: result.error });
-                        } else {
-                           MySwal.fire({ icon: 'success', title: 'ซิงค์ข้อมูลสำเร็จ!', text: `อัปเดตข้อมูลนักเรียน ${result.updated} คน ลงใน Google Sheet เรียบร้อยแล้ว` });
-                        }
-                     } catch (err) {
-                        MySwal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message });
-                     }
-                  }}
-                >
-                  🔄 ซิงค์ยอด ขาด/มา ลง Sheet
-                </button>
-                <button
                   className="btn btn-sm btn-primary"
                   onClick={handleExportExcel}
                   style={{ width: 'auto', padding: '6px 16px', fontSize: '0.9rem', whiteSpace: 'nowrap' }}
@@ -2750,7 +2659,7 @@ if (activeSheetUrl) {
                 </p>
               </div>
 
-              </div>
+
               
               <div style={{ marginBottom: '24px' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '12px' }}>🏖️ วันหยุด / วันยกเลิกคลาส (ระบบจะไม่นับขาดในวันนี้)</h3>
@@ -2758,7 +2667,7 @@ if (activeSheetUrl) {
                   {holidays.map(h => (
                     <span key={h} style={{ background: '#fce8e6', color: '#c5221f', padding: '4px 12px', borderRadius: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {new Date(h).toLocaleDateString('th-TH')}
-                      <button className="btn btn-sm" style={{ padding: 0, background: 'transparent', color: '#c5221f', fontSize: '1rem' }} onClick={() => setHolidays(prev => prev.filter(x => x !== h))}>×</button>
+                      <button className="btn btn-sm" style={{ padding: 0, background: 'transparent', color: '#c5221f', fontSize: '1rem', marginLeft: '4px' }} onClick={() => setHolidays(prev => prev.filter(x => x !== h))}>×</button>
                     </span>
                   ))}
                   {holidays.length === 0 && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>ยังไม่ได้เพิ่มวันหยุด</span>}
