@@ -405,6 +405,7 @@ export default function AdminPage() {
   const [qrCode, setQrCode] = useState('');
   const [showQrCode, setShowQrCode] = useState(true);
   const [adminAvatarUrl, setAdminAvatarUrl] = useState('');
+  const [googleAppScriptUrl, setGoogleAppScriptUrl] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   const [editAssignment, setEditAssignment] = useState(null);
   

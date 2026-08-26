@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { subjectId, subjectName, className, adminKey, qrCode, adminAvatarUrl, targetLat, targetLng, targetRoomName, classSchedules } = body;
+    const { subjectId, subjectName, className, adminKey, qrCode, adminAvatarUrl, targetLat, targetLng, targetRoomName, classSchedules, googleAppScriptUrl } = body;
 
     if (adminKey !== 'admin2569') {
       return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึง' }, { status: 403 });
@@ -25,6 +25,7 @@ export async function POST(request) {
     const globalUpdates = {};
     if (qrCode !== undefined) globalUpdates.qrCode = qrCode;
     if (adminAvatarUrl !== undefined) globalUpdates.adminAvatarUrl = adminAvatarUrl;
+    if (googleAppScriptUrl !== undefined) globalUpdates.googleAppScriptUrl = googleAppScriptUrl;
     
     // Always update global settings
     const newSettings = await updateSettings(globalUpdates);
