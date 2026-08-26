@@ -421,6 +421,45 @@ export default function AdminPage() {
   const [calendarRoom, setCalendarRoom] = useState('');
   const [editingCell, setEditingCell] = useState(null);
   const [classSchedules, setClassSchedules] = useState([]);
+  
+  const [brushMode, setBrushMode] = useState(null); // 'present', 'leave', 'delete'
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    const handleMouseUp = () => setIsDragging(false);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, []);
+
+  const applyBrush = (student, dateStr, isoDateStr, att, mode) => {
+    if (!mode) return;
+    if (mode === 'present' && att && att.type === 'present' && att.isOk !== false) return;
+    if (mode === 'leave' && att && att.type === 'leave') return;
+    if (mode === 'delete' && !att) return;
+
+    if (mode === 'present') {
+      const newAttId = crypto.randomUUID();
+      setAttendances(prev => {
+         const filtered = prev.filter(a => !(att && a.id === att.id));
+         return [...filtered, { id: newAttId, studentId: student.id, subjectId: selectedSubject, type: 'present', status: 'approved', timestamp: isoDateStr, createdAt: isoDateStr }];
+      });
+      if (att) fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
+      fetch('/api/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ studentId: student.id, subjectId: selectedSubject, type: 'present', adminKey, timestamp: isoDateStr }) });
+    } else if (mode === 'leave') {
+      const newAttId = crypto.randomUUID();
+      setAttendances(prev => {
+         const filtered = prev.filter(a => !(att && a.id === att.id));
+         return [...filtered, { id: newAttId, studentId: student.id, subjectId: selectedSubject, type: 'leave', status: 'approved', reason: 'ลากิจ/ลาป่วย (แก้ไขโดยครู)', timestamp: isoDateStr, createdAt: isoDateStr }];
+      });
+      if (att) fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
+      fetch('/api/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ studentId: student.id, subjectId: selectedSubject, type: 'leave', reason: 'ลากิจ/ลาป่วย (แก้ไขโดยครู)', adminKey, timestamp: isoDateStr }) });
+    } else if (mode === 'delete') {
+      if (att) {
+        setAttendances(prev => prev.filter(a => a.id !== att.id));
+        fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
+      }
+    }
+  };
 
   const getNormalizedSchedules = (scheds) => {
     if (!scheds) return [];
@@ -2219,56 +2258,38 @@ if (activeSheetUrl) {
                               return (
                                 <td 
                                   key={i} 
-                                  style={cellStyle} 
+                                  style={{ ...cellStyle, userSelect: 'none' }} 
                                   title={tooltip}
-                                  onClick={() => {
+                                  onMouseDown={() => {
                                     if (isClassDay && !isFuture) {
                                       const isoDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T08:00:00+07:00`;
-                                      MySwal.fire({
-                                        title: `แก้ไขเช็คชื่อ: ${student.nickname || student.name || student.id}`,
-                                        text: `วันที่: ${dateStr}`,
-                                        showDenyButton: true,
-                                        showCancelButton: true,
-                                        confirmButtonText: '✅ มาเรียน',
-                                        denyButtonText: '🟡 ลา',
-                                        cancelButtonText: '❌ ลบข้อมูล (ขาด)',
-                                        confirmButtonColor: '#34a853',
-                                        denyButtonColor: '#fbbc04',
-                                        cancelButtonColor: '#ea4335',
-                                      }).then((result) => {
-                                        try {
-                                          if (result.isConfirmed) {
-                                            // Optimistic Update
-                                            const newAttId = crypto.randomUUID();
-                                            setAttendances(prev => {
-                                               const filtered = prev.filter(a => !(att && a.id === att.id));
-                                               return [...filtered, { id: newAttId, studentId: student.id, subjectId: selectedSubject, type: 'present', status: 'approved', timestamp: isoDateStr, createdAt: isoDateStr }];
-                                            });
-                                            // API call in background
-                                            if (att) fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
-                                            fetch('/api/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ studentId: student.id, subjectId: selectedSubject, type: 'present', adminKey, timestamp: isoDateStr }) });
-                                          } else if (result.isDenied) {
-                                            // Optimistic Update
-                                            const newAttId = crypto.randomUUID();
-                                            setAttendances(prev => {
-                                               const filtered = prev.filter(a => !(att && a.id === att.id));
-                                               return [...filtered, { id: newAttId, studentId: student.id, subjectId: selectedSubject, type: 'leave', status: 'approved', reason: 'ลากิจ/ลาป่วย (แก้ไขโดยครู)', timestamp: isoDateStr, createdAt: isoDateStr }];
-                                            });
-                                            // API call in background
-                                            if (att) fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
-                                            fetch('/api/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ studentId: student.id, subjectId: selectedSubject, type: 'leave', reason: 'ลากิจ/ลาป่วย (แก้ไขโดยครู)', adminKey, timestamp: isoDateStr }) });
-                                          } else if (result.dismiss === Swal.DismissReason.cancel) {
-                                            if (att) {
-                                              // Optimistic Update
-                                              setAttendances(prev => prev.filter(a => a.id !== att.id));
-                                              // API call in background
-                                              fetch(`/api/attendance?id=${att.id}&adminKey=${adminKey}`, { method: 'DELETE' });
-                                            }
-                                          }
-                                        } catch (e) {
-                                          console.error(e);
-                                        }
-                                      });
+                                      if (brushMode) {
+                                        setIsDragging(true);
+                                        applyBrush(student, dateStr, isoDateStr, att, brushMode);
+                                      } else {
+                                        MySwal.fire({
+                                          title: `แก้ไขเช็คชื่อ: ${student.nickname || student.name || student.id}`,
+                                          text: `วันที่: ${dateStr}`,
+                                          showDenyButton: true,
+                                          showCancelButton: true,
+                                          confirmButtonText: '✅ มาเรียน',
+                                          denyButtonText: '🟡 ลา',
+                                          cancelButtonText: '❌ ลบข้อมูล (ขาด)',
+                                          confirmButtonColor: '#34a853',
+                                          denyButtonColor: '#fbbc04',
+                                          cancelButtonColor: '#ea4335',
+                                        }).then((result) => {
+                                          if (result.isConfirmed) applyBrush(student, dateStr, isoDateStr, att, 'present');
+                                          else if (result.isDenied) applyBrush(student, dateStr, isoDateStr, att, 'leave');
+                                          else if (result.dismiss === Swal.DismissReason.cancel) applyBrush(student, dateStr, isoDateStr, att, 'delete');
+                                        });
+                                      }
+                                    }
+                                  }}
+                                  onMouseEnter={() => {
+                                    if (isDragging && brushMode && isClassDay && !isFuture) {
+                                      const isoDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T08:00:00+07:00`;
+                                      applyBrush(student, dateStr, isoDateStr, att, brushMode);
                                     }
                                   }}
                                 >
