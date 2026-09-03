@@ -2078,8 +2078,8 @@ export default function AdminPage() {
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>วันที่มีเรียนทั้งหมด</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#fbbc05' }}>ลา (วัน)</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#ea4335' }}>ขาด (วัน)</th>
-                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>สรุปขาด (คะแนน)</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>คะแนนมาเรียน (เต็ม 10)</th>
+                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>สรุปขาด (คะแนน)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2100,8 +2100,8 @@ export default function AdminPage() {
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>{totalClassDays}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#fbbc05', fontWeight: 600 }}>{laCount}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#ea4335', fontWeight: 600 }}>{khadCount}</td>
-                            <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>{totalKhad}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>{behaviorScore}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>{totalKhad}</td>
                           </tr>
                         );
                     })}
