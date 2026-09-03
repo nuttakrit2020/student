@@ -2006,7 +2006,7 @@ export default function AdminPage() {
         {activeTab === 'attendance_summary' && (() => {
           const rooms = data?.students ? [...new Set(data.students.map(s => s.room || '').filter(Boolean))].sort() : [];
           const students = data?.students || [];
-          const allAttendances = data?.attendances || [];
+          const allAttendances = attendances || [];
           const roomSchedules = classSchedules || [];
           const hols = holidays || [];
           
@@ -2017,19 +2017,20 @@ export default function AdminPage() {
              return sRoom === targetRoom;
           });
 
-          let earliestDate = new Date();
-          if (allAttendances.length > 0) {
-             const dates = allAttendances.map(a => new Date(a.timestamp).getTime());
-             earliestDate = new Date(Math.min(...dates));
-          } else {
-             earliestDate.setDate(earliestDate.getDate() - 30);
-          }
-          
-          const startOfTerm = earliestDate;
+          // Use fixed term start date (18 May 2026)
+          const startOfTerm = new Date('2026-05-18T00:00:00+07:00');
           startOfTerm.setHours(0,0,0,0);
           
           const today = new Date();
           today.setHours(23,59,59,999);
+          
+          // Build index for O(1) lookup
+          const attIndex = {};
+          for (const att of allAttendances) {
+             const aDate = new Date(att.timestamp);
+             const aIso = `${aDate.getFullYear()}-${String(aDate.getMonth() + 1).padStart(2, '0')}-${String(aDate.getDate()).padStart(2, '0')}`;
+             attIndex[`${att.studentId}_${aIso}`] = att;
+          }
 
           return (
             <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
@@ -2098,8 +2099,9 @@ export default function AdminPage() {
                            const dateStrIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                            if (classDays.length > 0 && (!classDays.includes(jsDay) || hols.includes(dateStrIso))) continue;
                            totalClassDays++;
-                           const dateStr = d.toLocaleDateString('th-TH');
-                           const att = allAttendances.find(a => a.studentId === student.id && new Date(a.timestamp).toLocaleDateString('th-TH') === dateStr);
+                           
+                           const att = attIndex[`${student.id}_${dateStrIso}`];
+                           
                            if (att) {
                               if (att.type === 'leave') laCount++;
                            } else {
