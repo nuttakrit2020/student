@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSubjects, addAttendance, getAttendances, deleteAttendance } from '@/lib/data';
+import { getSubjects, addAttendance, getAttendances, deleteAttendance, getSettings } from '@/lib/data';
 import Papa from 'papaparse';
 
 export async function POST(request) {
@@ -20,6 +20,9 @@ export async function POST(request) {
         await Promise.all(chunk.map(a => deleteAttendance(a.id)));
     }
 
+    const settings = await getSettings();
+    const holidays = settings?.holidays || [];
+
     const today = new Date();
     today.setHours(0,0,0,0);
     const startDate = new Date('2026-05-18T00:00:00+07:00');
@@ -27,27 +30,32 @@ export async function POST(request) {
     for (const subject of subjects) {
         if (!subject.googleSheetUrls) continue;
 
-        // Determine class days for this subject
-        const classDays = [];
-        if (subject.classSchedules && subject.classSchedules.length > 0) {
-            subject.classSchedules.forEach(sched => {
-                if (!classDays.includes(sched.day)) {
-                    classDays.push(sched.day);
-                }
-            });
-        }
-
-        // Generate a list of all past valid class dates
-        const validDates = [];
-        let currDate = new Date(startDate);
-        while (currDate < today) {
-            if (classDays.length === 0 || classDays.includes(currDate.getDay())) {
-                validDates.push(new Date(currDate).toISOString());
-            }
-            currDate.setDate(currDate.getDate() + 1);
-        }
-
         for (const [roomKey, sheetUrl] of Object.entries(subject.googleSheetUrls)) {
+            
+            // Find class days specific to this room
+            const roomDays = [];
+            if (subject.classSchedules) {
+                subject.classSchedules.forEach(sched => {
+                   const cleanedRoomKey = roomKey.replace(/^ม\.?\s*/, '').trim();
+                   const cleanedSchedRoom = (sched.room || '').replace(/^ม\.?\s*/, '').trim();
+                   if (cleanedRoomKey === cleanedSchedRoom || sched.room === roomKey) {
+                       roomDays.push(sched.day);
+                   }
+                });
+            }
+
+            // Generate a list of all past valid class dates FOR THIS ROOM
+            const validDates = [];
+            let currDate = new Date(startDate);
+            while (currDate < today) {
+                const dateStrIso = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${String(currDate.getDate()).padStart(2, '0')}`;
+                if (roomDays.length === 0 || roomDays.includes(currDate.getDay())) {
+                    if (!holidays.includes(dateStrIso)) {
+                        validDates.push(new Date(currDate).toISOString());
+                    }
+                }
+                currDate.setDate(currDate.getDate() + 1);
+            }
             
             const match = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
             if (!match || !match[1]) continue;
