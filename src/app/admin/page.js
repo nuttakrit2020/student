@@ -2094,19 +2094,21 @@ export default function AdminPage() {
                         let laCount = 0;
                         let totalClassDays = 0;
                         
-                        for (let d = new Date(startOfTerm); d <= today; d.setDate(d.getDate() + 1)) {
-                           const jsDay = d.getDay() === 0 ? 7 : d.getDay();
-                           const dateStrIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                           if (classDays.length > 0 && (!classDays.includes(jsDay) || hols.includes(dateStrIso))) continue;
-                           totalClassDays++;
-                           
-                           const att = attIndex[`${student.id}_${dateStrIso}`];
-                           
-                           if (att) {
-                              if (att.type === 'leave') laCount++;
-                           } else {
-                              khadCount++;
-                           }
+                        if (classDays.length > 0) {
+                            for (let d = new Date(startOfTerm); d <= today; d.setDate(d.getDate() + 1)) {
+                               const jsDay = d.getDay() === 0 ? 7 : d.getDay();
+                               const dateStrIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                               if (!classDays.includes(jsDay) || hols.includes(dateStrIso)) continue;
+                               totalClassDays++;
+                               
+                               const att = attIndex[`${student.id}_${dateStrIso}`];
+                               
+                               if (att) {
+                                  if (att.type === 'leave') laCount++;
+                               } else {
+                                  khadCount++;
+                               }
+                            }
                         }
                         
                         const totalKhad = khadCount + (laCount * 0.5);
