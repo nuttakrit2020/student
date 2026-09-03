@@ -684,10 +684,26 @@ export default function AdminPage() {
       if (!roomClassDays[s.room]) roomClassDays[s.room] = new Set();
       roomClassDays[s.room].add(s.day);
     }
+    
+    const roomClassDates = {};
+    for (const [room, daysSet] of Object.entries(roomClassDays)) {
+      const dates = [];
+      let d = new Date(startOfSemester);
+      while (d <= todayDate) {
+        const dateStrIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (daysSet.has(d.getDay()) && !holidays.includes(dateStrIso)) {
+          if (roomActiveDates[room] && roomActiveDates[room].has(dateStrIso)) {
+              dates.push(dateStrIso);
+          }
+        }
+        d.setDate(d.getDate() + 1);
+      }
+      roomClassDates[room] = dates;
+    }
 
     for (const row of summaryData) {
       const cleanedRoom = (row.student?.room || '').replace(/^ม\.?\s*/, '').trim();
-      const classDates = roomActiveDates[cleanedRoom] ? Array.from(roomActiveDates[cleanedRoom]) : [];
+      const classDates = roomClassDates[cleanedRoom] || [];
       
       let present = 0, leave = 0, absent = 0;
       for (const dateStr of classDates) {
@@ -2083,8 +2099,14 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {studentsForRoom.map((student, index) => {
+                        const roomScheds = getNormalizedSchedules(roomSchedules).filter(s => {
+                          const cleanedRoom = (student.room || '').replace(/^ม\.?\s*/, '').trim();
+                          return s.room === cleanedRoom || s.room === student.room;
+                        });
+                        const uniqueDays = new Set(roomScheds.map(s => s.day)).size;
+                        const totalClassDays = uniqueDays > 0 ? uniqueDays * 20 : 0;
+
                         const stats = attendanceStats[student.id] || { present: 0, leave: 0, absent: 0, total: 0 };
-                        const totalClassDays = stats.total || 0;
                         const maCount = stats.present;
                         const laCount = stats.leave;
                         const khadCount = stats.absent;
