@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSubjects, addAttendancesBatch, deleteAttendancesBatch, getSettings, getAttendances } from '@/lib/data';
+import { getSubjects, addAttendancesBatch, deleteAttendancesBatch, getSettings } from '@/lib/data';
 import Papa from 'papaparse';
 
 export const maxDuration = 60;
@@ -20,9 +20,6 @@ export async function POST(request) {
     const today = new Date();
     today.setHours(0,0,0,0);
     const startDate = new Date('2026-05-18T00:00:00+07:00');
-
-    // Fetch existing attendances once
-    const allAtt = await getAttendances();
 
     for (const subject of subjects) {
         if (!subject.googleSheetUrls) continue;
@@ -69,10 +66,13 @@ export async function POST(request) {
             
             let csvData;
             try {
-                const response = await fetch(csvUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }});
+                const response = await fetch(csvUrl, { 
+                    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                    signal: AbortSignal.timeout(5000)
+                });
                 if (!response.ok) {
                     const tqUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-                    const tqResponse = await fetch(tqUrl);
+                    const tqResponse = await fetch(tqUrl, { signal: AbortSignal.timeout(5000) });
                     if (!tqResponse.ok) continue;
                     csvData = await tqResponse.text();
                 } else {
@@ -87,7 +87,6 @@ export async function POST(request) {
             const parsed = Papa.parse(csvData, { header: true, skipEmptyLines: true });
             const sheetData = parsed.data;
 
-            const roomStudentIds = new Set();
             const toSave = [];
             const toDeleteDocIds = [];
 
@@ -95,7 +94,6 @@ export async function POST(request) {
                 const studentIdVal = Object.values(row).find(v => v && String(v).length >= 4 && !isNaN(parseInt(v)));
                 if (!studentIdVal) continue;
                 const studentId = String(studentIdVal).trim();
-                roomStudentIds.add(studentId);
 
                 const rawKhad = row['ขาด'] || '0';
                 const khadNum = parseFloat(rawKhad);
@@ -172,12 +170,8 @@ export async function POST(request) {
                 }
             }
 
-            // Also delete any existing old non-deterministic attendances for these students
-            const oldRoomAttIds = allAtt.filter(a => roomStudentIds.has(a.studentId) && !a.id.startsWith('fake_')).map(a => a.id);
-            const allDeleteIds = [...oldRoomAttIds, ...toDeleteDocIds];
-
-            if (allDeleteIds.length > 0) {
-                await deleteAttendancesBatch(allDeleteIds);
+            if (toDeleteDocIds.length > 0) {
+                await deleteAttendancesBatch(toDeleteDocIds);
             }
 
             if (toSave.length > 0) {
