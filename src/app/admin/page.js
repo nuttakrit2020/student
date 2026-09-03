@@ -2084,8 +2084,14 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {studentsForRoom.map((student, index) => {
+                        const roomScheds = getNormalizedSchedules(roomSchedules).filter(s => {
+                          const cleanedRoom = (student.room || '').replace(/^ม\.?\s*/, '').trim();
+                          return s.room === cleanedRoom || s.room === student.room;
+                        });
+                        const uniqueDays = new Set(roomScheds.map(s => s.day)).size;
+                        const totalClassDays = uniqueDays > 0 ? uniqueDays * 20 : 0;
+
                         const stats = attendanceStats[student.id] || { present: 0, leave: 0, absent: 0 };
-                        const totalClassDays = stats.present + stats.leave + stats.absent;
                         const laCount = stats.leave;
                         const khadCount = stats.absent;
                         
