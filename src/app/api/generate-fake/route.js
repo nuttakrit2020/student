@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getSubjects, addAttendance, getAttendances, deleteAttendance, getSettings } from '@/lib/data';
+import { getSubjects, addAttendancesBatch, getSettings } from '@/lib/data';
 import Papa from 'papaparse';
 
 export async function POST(request) {
   try {
-    const { adminKey } = await request.json();
+    const { adminKey, targetRoomKey } = await request.json();
     if (adminKey !== 'admin2569') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
     const subjects = await getSubjects();
@@ -12,25 +12,21 @@ export async function POST(request) {
 
     let totalCreated = 0;
 
-    // CLEAR ALL EXISTING ATTENDANCES FAST
-    const allAtt = await getAttendances();
-    // Do it in chunks of 50 to avoid maxing out connections but keep it fast
-    for (let i = 0; i < allAtt.length; i += 50) {
-        const chunk = allAtt.slice(i, i + 50);
-        await Promise.all(chunk.map(a => deleteAttendance(a.id)));
-    }
-
     const settings = await getSettings();
     const holidays = settings?.holidays || [];
 
     const today = new Date();
     today.setHours(0,0,0,0);
     const startDate = new Date('2026-05-18T00:00:00+07:00');
+    
+    let allNewAttendances = [];
 
     for (const subject of subjects) {
         if (!subject.googleSheetUrls) continue;
 
         for (const [roomKey, sheetUrl] of Object.entries(subject.googleSheetUrls)) {
+            if (targetRoomKey && roomKey !== targetRoomKey) continue;
+
             
             // Find class days specific to this room
             const roomDays = [];
@@ -51,7 +47,8 @@ export async function POST(request) {
                 const dateStrIso = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${String(currDate.getDate()).padStart(2, '0')}`;
                 if (roomDays.length === 0 || roomDays.includes(currDate.getDay())) {
                     if (!holidays.includes(dateStrIso)) {
-                        validDates.push(new Date(currDate).toISOString());
+                        // Use exact 08:00:00+07:00 format
+                        validDates.push(`${dateStrIso}T08:00:00+07:00`);
                     }
                 }
                 currDate.setDate(currDate.getDate() + 1);
@@ -116,10 +113,8 @@ export async function POST(request) {
                 // Skip numKhad
                 datesIdx += numKhad;
 
-                // Create leave records
-                const pendingAtts = [];
                 for (let i = 0; i < numLa && datesIdx < studentDates.length; i++) {
-                    pendingAtts.push(addAttendance({
+                    allNewAttendances.push({
                         id: crypto.randomUUID(),
                         studentId,
                         subjectId: subject.id,
@@ -131,14 +126,13 @@ export async function POST(request) {
                         photo: '',
                         timestamp: studentDates[datesIdx],
                         createdAt: studentDates[datesIdx]
-                    }));
+                    });
                     totalCreated++;
                     datesIdx++;
                 }
 
-                // Create present records
                 while (datesIdx < studentDates.length) {
-                    pendingAtts.push(addAttendance({
+                    allNewAttendances.push({
                         id: crypto.randomUUID(),
                         studentId,
                         subjectId: subject.id,
@@ -150,15 +144,16 @@ export async function POST(request) {
                         photo: '',
                         timestamp: studentDates[datesIdx],
                         createdAt: studentDates[datesIdx]
-                    }));
+                    });
                     totalCreated++;
                     datesIdx++;
                 }
-
-                // Wait for all records of this student to be added before moving to next (avoids overloading)
-                await Promise.all(pendingAtts);
             }
         }
+    }
+    
+    if (allNewAttendances.length > 0) {
+        await addAttendancesBatch(allNewAttendances);
     }
 
     return NextResponse.json({ success: true, message: `Created ${totalCreated} fake attendance records!` });

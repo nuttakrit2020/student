@@ -494,6 +494,25 @@ export async function addAttendance(attendance) {
   return attendance;
 }
 
+export async function addAttendancesBatch(atts) {
+  if (db) {
+    for (let i = 0; i < atts.length; i += 400) {
+      const chunk = atts.slice(i, i + 400);
+      const batch = writeBatch(db);
+      for (const a of chunk) {
+        batch.set(doc(db, 'attendances', a.id), a);
+      }
+      await batch.commit();
+    }
+    return atts;
+  }
+  // Fallback for JSON
+  const attendances = readJSON('attendances.json');
+  attendances.push(...atts);
+  writeJSON('attendances.json', attendances);
+  return atts;
+}
+
 export async function deleteAttendance(id) {
   if (db) {
     await deleteDoc(doc(db, 'attendances', id));
@@ -503,6 +522,24 @@ export async function deleteAttendance(id) {
   const filtered = attendances.filter(a => a.id !== id);
   writeJSON('attendances.json', filtered);
   return true;
+}
+
+export async function deleteAttendancesBatch(ids) {
+  if (db) {
+    for (let i = 0; i < ids.length; i += 400) {
+      const chunk = ids.slice(i, i + 400);
+      const batch = writeBatch(db);
+      for (const id of chunk) {
+        batch.delete(doc(db, 'attendances', id));
+      }
+      await batch.commit();
+    }
+    return;
+  }
+  const attendances = readJSON('attendances.json');
+  const idSet = new Set(ids);
+  const filtered = attendances.filter(a => !idSet.has(a.id));
+  writeJSON('attendances.json', filtered);
 }
 
 export async function updateAttendance(id, updates) {
