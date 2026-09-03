@@ -657,12 +657,25 @@ export default function AdminPage() {
     todayDate.setHours(0, 0, 0, 0);
     const startOfSemester = new Date('2026-05-18T00:00:00+07:00');
 
-    // Build attendance index: { "studentId_YYYY-MM-DD": attendance }
+    // Build attendance index and active dates per room
     const attIndex = {};
+    const roomActiveDates = {};
+    const studentRoomMap = {};
+    for (const s of students) {
+       studentRoomMap[s.id] = (s.room || '').replace(/^ม\.?\s*/, '').trim();
+    }
+
     for (const att of attendances) {
       const aDate = new Date(att.timestamp);
-      const key = `${att.studentId}_${aDate.getFullYear()}-${String(aDate.getMonth() + 1).padStart(2, '0')}-${String(aDate.getDate()).padStart(2, '0')}`;
+      const dateStrIso = `${aDate.getFullYear()}-${String(aDate.getMonth() + 1).padStart(2, '0')}-${String(aDate.getDate()).padStart(2, '0')}`;
+      const key = `${att.studentId}_${dateStrIso}`;
       attIndex[key] = att;
+      
+      const room = studentRoomMap[att.studentId];
+      if (room) {
+         if (!roomActiveDates[room]) roomActiveDates[room] = new Set();
+         roomActiveDates[room].add(dateStrIso);
+      }
     }
 
     // Pre-compute class days list per room
@@ -672,24 +685,9 @@ export default function AdminPage() {
       roomClassDays[s.room].add(s.day);
     }
 
-    // Pre-compute all class dates per room
-    const roomClassDates = {};
-    for (const [room, daysSet] of Object.entries(roomClassDays)) {
-      const dates = [];
-      let d = new Date(startOfSemester);
-      while (d <= todayDate) {
-        const dateStrIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        if (daysSet.has(d.getDay()) && !holidays.includes(dateStrIso)) {
-          dates.push(dateStrIso);
-        }
-        d.setDate(d.getDate() + 1);
-      }
-      roomClassDates[room] = dates;
-    }
-
     for (const row of summaryData) {
       const cleanedRoom = (row.student?.room || '').replace(/^ม\.?\s*/, '').trim();
-      const classDates = roomClassDates[cleanedRoom] || roomClassDates[row.student?.room] || [];
+      const classDates = roomActiveDates[cleanedRoom] ? Array.from(roomActiveDates[cleanedRoom]) : [];
       
       let present = 0, leave = 0, absent = 0;
       for (const dateStr of classDates) {
