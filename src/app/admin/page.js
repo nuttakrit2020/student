@@ -699,7 +699,7 @@ export default function AdminPage() {
           absent++;
         }
       }
-      stats[row.student.id] = { present, leave, absent };
+      stats[row.student.id] = { present, leave, absent, total: classDates.length };
     }
     return stats;
   }, [summaryData, classSchedules, attendances]);
@@ -2083,14 +2083,8 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {studentsForRoom.map((student, index) => {
-                        const roomScheds = getNormalizedSchedules(roomSchedules).filter(s => {
-                          const cleanedRoom = (student.room || '').replace(/^ม\.?\s*/, '').trim();
-                          return s.room === cleanedRoom || s.room === student.room;
-                        });
-                        const uniqueDays = new Set(roomScheds.map(s => s.day)).size;
-                        const totalClassDays = uniqueDays > 0 ? uniqueDays * 20 : 0;
-
-                        const stats = attendanceStats[student.id] || { present: 0, leave: 0, absent: 0 };
+                        const stats = attendanceStats[student.id] || { present: 0, leave: 0, absent: 0, total: 0 };
+                        const totalClassDays = stats.total || 0;
                         const maCount = stats.present;
                         const laCount = stats.leave;
                         const khadCount = stats.absent;
