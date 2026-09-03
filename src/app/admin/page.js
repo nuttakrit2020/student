@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import { db } from '@/lib/firebase';
+import { doc, writeBatch } from 'firebase/firestore';
 
 const MySwal = withReactContent(Swal);
 
@@ -2086,30 +2088,169 @@ export default function AdminPage() {
                   className="btn btn-sm"
                   style={{ width: 'auto', padding: '6px 16px', fontSize: '0.9rem', whiteSpace: 'nowrap', background: '#9c27b0', color: 'white', border: 'none', borderRadius: '8px' }}
                   onClick={async () => {
-                    if (!confirm('ยืนยันที่จะดึงจำนวน ขาด/ลา จากใน Google Sheet มาสุ่มสร้างเป็นวันขาด/ลา ในระบบหรือไม่? (ข้อมูลการเช็คชื่อทั้งหมดจะถูกลบและสร้างใหม่)')) return;
+                    if (!confirm('ยืนยันที่จะดึงจำนวน ขาด/ลา จากใน Google Sheet มาสุ่มสร้างเป็นวันขาด/ลา ในระบบหรือไม่? (ข้อมูลการเช็คชื่อทั้งหมดจะถูกปรับให้ตรงตาม Sheet)')) return;
                     
                     try {
-                      let rooms = [];
-                      if (subjects.length > 0 && subjects[0].googleSheetUrls) {
-                          rooms = Object.keys(subjects[0].googleSheetUrls);
+                      if (!subjects.length || !subjects[0].googleSheetUrls) {
+                        addToast('ไม่พบลิงก์ Google Sheet ในวิชา', 'error');
+                        return;
                       }
 
-                      for (let i = 0; i < rooms.length; i++) {
-                         addToast(`กำลังดึงข้อมูลและสุ่มวันขาด/ลา ห้อง ${rooms[i]} (${i+1}/${rooms.length})...`, 'info');
-                         const genRes = await fetch('/api/generate-fake', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ adminKey, targetRoomKey: rooms[i] })
-                         });
-                         if (!genRes.ok) {
-                            addToast(`เกิดข้อผิดพลาดในการดึงห้อง ${rooms[i]}`, 'error');
-                         }
+                      const currentSubject = subjects.find(s => s.id === selectedSubject) || subjects[0];
+                      const sheetUrls = currentSubject.googleSheetUrls || {};
+                      const rooms = Object.keys(sheetUrls);
+
+                      const holidays = settings?.holidays || [];
+                      const today = new Date();
+                      today.setHours(0,0,0,0);
+                      const startDate = new Date('2026-05-18T00:00:00+07:00');
+
+                      for (let roomIdx = 0; roomIdx < rooms.length; roomIdx++) {
+                        const roomKey = rooms[roomIdx];
+                        const sheetUrl = sheetUrls[roomKey];
+                        const cleanedRoomKey = roomKey.replace(/^ม\.?\s*/, '').trim();
+
+                        addToast(`กำลังดึงข้อมูลและสุ่มวันขาด/ลา ห้อง ${roomKey} (${roomIdx + 1}/${rooms.length})...`, 'info');
+
+                        // 1. Fetch CSV data via proxy
+                        const parseRes = await fetch('/api/parse-sheet', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ sheetUrl })
+                        });
+                        const parseData = await parseRes.json();
+                        if (!parseRes.ok || !parseData.data) {
+                          addToast(`ข้ามห้อง ${roomKey}: ไม่สามารถอ่านข้อมูล Sheet ได้`, 'error');
+                          continue;
+                        }
+
+                        // 2. Find room class days
+                        const roomDays = [];
+                        if (currentSubject.classSchedules) {
+                          currentSubject.classSchedules.forEach(sched => {
+                            const cleanedSchedRoom = (sched.room || '').replace(/^ม\.?\s*/, '').trim();
+                            if (cleanedRoomKey === cleanedSchedRoom || sched.room === roomKey) {
+                              roomDays.push(sched.day);
+                            }
+                          });
+                        }
+
+                        // 3. Calculate valid dates for this room
+                        const validDates = [];
+                        let currDate = new Date(startDate);
+                        while (currDate < today) {
+                          const dateStrIso = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${String(currDate.getDate()).padStart(2, '0')}`;
+                          if (roomDays.length === 0 || roomDays.includes(currDate.getDay())) {
+                            if (!holidays.includes(dateStrIso)) {
+                              validDates.push(dateStrIso);
+                            }
+                          }
+                          currDate.setDate(currDate.getDate() + 1);
+                        }
+
+                        // 4. Generate records for each student in room
+                        const toSave = [];
+                        const toDeleteDocIds = [];
+
+                        for (const row of parseData.data) {
+                          const studentIdVal = Object.values(row).find(v => v && String(v).length >= 4 && !isNaN(parseInt(v)));
+                          if (!studentIdVal) continue;
+                          const studentId = String(studentIdVal).trim();
+
+                          const rawKhad = row['ขาด'] || '0';
+                          const khadNum = parseFloat(rawKhad);
+
+                          let numLa = 0;
+                          let numKhad = 0;
+
+                          if (khadNum === 0.5) numLa = 1;
+                          else if (khadNum > 0 && khadNum % 1 === 0) numKhad = khadNum;
+                          else if (khadNum > 0) {
+                            numKhad = Math.floor(khadNum);
+                            numLa = (khadNum - numKhad) === 0.5 ? 1 : 0;
+                          }
+
+                          const studentDates = [...validDates];
+                          for (let i = studentDates.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [studentDates[i], studentDates[j]] = [studentDates[j], studentDates[i]];
+                          }
+
+                          let idx = 0;
+                          for (let i = 0; i < numKhad && idx < studentDates.length; i++) {
+                            const dateIso = studentDates[idx];
+                            toDeleteDocIds.push(`fake_${currentSubject.id}_${studentId}_${dateIso}`);
+                            idx++;
+                          }
+
+                          for (let i = 0; i < numLa && idx < studentDates.length; i++) {
+                            const dateIso = studentDates[idx];
+                            const timestamp = `${dateIso}T08:00:00+07:00`;
+                            toSave.push({
+                              id: `fake_${currentSubject.id}_${studentId}_${dateIso}`,
+                              studentId,
+                              subjectId: currentSubject.id,
+                              type: 'leave',
+                              reason: 'ลากิจ/ลาป่วย',
+                              lat: null, lng: null, distance: null,
+                              isOk: null,
+                              status: 'approved',
+                              photo: '',
+                              timestamp,
+                              createdAt: timestamp
+                            });
+                            idx++;
+                          }
+
+                          while (idx < studentDates.length) {
+                            const dateIso = studentDates[idx];
+                            const timestamp = `${dateIso}T08:00:00+07:00`;
+                            toSave.push({
+                              id: `fake_${currentSubject.id}_${studentId}_${dateIso}`,
+                              studentId,
+                              subjectId: currentSubject.id,
+                              type: 'present',
+                              reason: '',
+                              lat: null, lng: null, distance: null,
+                              isOk: true,
+                              status: 'approved',
+                              photo: '',
+                              timestamp,
+                              createdAt: timestamp
+                            });
+                            idx++;
+                          }
+                        }
+
+                        // 5. Execute Firestore batch commits using client-side Firestore!
+                        if (db) {
+                          const batchPromises = [];
+                          
+                          // Delete absent docs
+                          for (let i = 0; i < toDeleteDocIds.length; i += 100) {
+                            const chunk = toDeleteDocIds.slice(i, i + 100);
+                            const b = writeBatch(db);
+                            chunk.forEach(id => b.delete(doc(db, 'attendances', id)));
+                            batchPromises.push(b.commit());
+                          }
+
+                          // Save present/leave docs
+                          for (let i = 0; i < toSave.length; i += 100) {
+                            const chunk = toSave.slice(i, i + 100);
+                            const b = writeBatch(db);
+                            chunk.forEach(item => b.set(doc(db, 'attendances', item.id), item));
+                            batchPromises.push(b.commit());
+                          }
+
+                          await Promise.all(batchPromises);
+                        }
                       }
 
-                      addToast('สร้างข้อมูลจำลองเรียบร้อย!', 'success');
+                      addToast('สุ่มสร้างข้อมูลเวลาเรียนตรงตาม Sheet สำเร็จทุกห้อง!', 'success');
                       fetchData(adminKey, selectedSubject);
                     } catch (err) {
-                      addToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                      console.error(err);
+                      addToast('เกิดข้อผิดพลาดในการประมวลผล', 'error');
                     }
                   }}
                 >
