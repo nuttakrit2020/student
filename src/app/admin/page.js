@@ -2076,10 +2076,11 @@ export default function AdminPage() {
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>รหัส</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left' }}>ชื่อ-สกุล</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>วันที่มีเรียนทั้งหมด</th>
+                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853' }}>มา (วัน)</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#fbbc05' }}>ลา (วัน)</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#ea4335' }}>ขาด (วัน)</th>
-                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>คะแนนมาเรียน (เต็ม 10)</th>
-                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>สรุปขาด (คะแนน)</th>
+                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>รวมหักคะแนน</th>
+                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>คะแนนจิตพิสัย (เต็ม 10)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2092,11 +2093,12 @@ export default function AdminPage() {
                         const totalClassDays = uniqueDays > 0 ? uniqueDays * 20 : 0;
 
                         const stats = attendanceStats[student.id] || { present: 0, leave: 0, absent: 0 };
+                        const maCount = stats.present;
                         const laCount = stats.leave;
                         const khadCount = stats.absent;
                         
-                        const totalKhad = khadCount + (laCount * 0.5);
-                        const behaviorScore = Math.max(0, 10 - (khadCount * 2) - (laCount * 1));
+                        const deductedPoints = (khadCount * 2) + (laCount * 1);
+                        const behaviorScore = Math.max(0, 10 - deductedPoints);
                         
                         return (
                           <tr key={student.id}>
@@ -2104,10 +2106,11 @@ export default function AdminPage() {
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>{student.studentId || student.id}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', whiteSpace: 'nowrap' }}>{student.name || '-'}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>{totalClassDays}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 600 }}>{maCount}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#fbbc05', fontWeight: 600 }}>{laCount}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#ea4335', fontWeight: 600 }}>{khadCount}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold', color: deductedPoints > 0 ? '#ea4335' : 'inherit' }}>{deductedPoints > 0 ? `-${deductedPoints}` : '0'}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>{behaviorScore}</td>
-                            <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>{totalKhad}</td>
                           </tr>
                         );
                     })}
