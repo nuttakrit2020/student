@@ -2088,27 +2088,14 @@ export default function AdminPage() {
                   onClick={async () => {
                     if (!confirm('ยืนยันที่จะดึงจำนวน ขาด/ลา จากใน Google Sheet มาสุ่มสร้างเป็นวันขาด/ลา ในระบบหรือไม่? (ข้อมูลการเช็คชื่อทั้งหมดจะถูกลบและสร้างใหม่)')) return;
                     
-                    addToast('กำลังลบข้อมูลเดิมทั้งหมด...', 'info');
                     try {
-                      // 1. Delete all first
-                      const delRes = await fetch('/api/delete-attendances', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ adminKey })
-                      });
-                      if (!delRes.ok) {
-                          addToast('ลบข้อมูลไม่สำเร็จ', 'error');
-                          return;
-                      }
-
-                      // 2. Generate per room
                       let rooms = [];
                       if (subjects.length > 0 && subjects[0].googleSheetUrls) {
                           rooms = Object.keys(subjects[0].googleSheetUrls);
                       }
 
                       for (let i = 0; i < rooms.length; i++) {
-                         addToast(`กำลังดึงข้อมูลห้อง ${rooms[i]} (${i+1}/${rooms.length})...`, 'info');
+                         addToast(`กำลังดึงข้อมูลและสุ่มวันขาด/ลา ห้อง ${rooms[i]} (${i+1}/${rooms.length})...`, 'info');
                          const genRes = await fetch('/api/generate-fake', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },

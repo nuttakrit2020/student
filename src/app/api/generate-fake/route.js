@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSubjects, addAttendancesBatch, getSettings } from '@/lib/data';
+import { getSubjects, addAttendancesBatch, getAttendances, deleteAttendancesBatch, getSettings } from '@/lib/data';
 import Papa from 'papaparse';
 
 export const maxDuration = 60; // Allow up to 60 seconds
@@ -21,7 +21,8 @@ export async function POST(request) {
     today.setHours(0,0,0,0);
     const startDate = new Date('2026-05-18T00:00:00+07:00');
     
-    let allNewAttendances = [];
+    // Fetch all current attendances once to filter per room
+    const allAtt = await getAttendances();
 
     for (const subject of subjects) {
         if (!subject.googleSheetUrls) continue;
@@ -29,6 +30,7 @@ export async function POST(request) {
         for (const [roomKey, sheetUrl] of Object.entries(subject.googleSheetUrls)) {
             if (targetRoomKey && roomKey !== targetRoomKey) continue;
 
+            let roomNewAttendances = [];
             
             // Find class days specific to this room
             const roomDays = [];
@@ -85,10 +87,13 @@ export async function POST(request) {
             const parsed = Papa.parse(csvData, { header: true, skipEmptyLines: true });
             const sheetData = parsed.data;
 
+            const roomStudentIds = new Set();
+
             for (const row of sheetData) {
                 const studentIdVal = Object.values(row).find(v => v && String(v).length >= 4 && !isNaN(parseInt(v)));
                 if (!studentIdVal) continue;
                 const studentId = String(studentIdVal).trim();
+                roomStudentIds.add(studentId);
 
                 const rawKhad = row['ขาด'] || '0';
                 const khadNum = parseFloat(rawKhad);
@@ -116,7 +121,7 @@ export async function POST(request) {
                 datesIdx += numKhad;
 
                 for (let i = 0; i < numLa && datesIdx < studentDates.length; i++) {
-                    allNewAttendances.push({
+                    roomNewAttendances.push({
                         id: crypto.randomUUID(),
                         studentId,
                         subjectId: subject.id,
@@ -134,7 +139,7 @@ export async function POST(request) {
                 }
 
                 while (datesIdx < studentDates.length) {
-                    allNewAttendances.push({
+                    roomNewAttendances.push({
                         id: crypto.randomUUID(),
                         studentId,
                         subjectId: subject.id,
@@ -151,11 +156,18 @@ export async function POST(request) {
                     datesIdx++;
                 }
             }
+
+            // 1. Delete existing attendances ONLY for students of this room
+            const toDeleteIds = allAtt.filter(a => roomStudentIds.has(a.studentId)).map(a => a.id);
+            if (toDeleteIds.length > 0) {
+                await deleteAttendancesBatch(toDeleteIds);
+            }
+
+            // 2. Add new attendances for this room
+            if (roomNewAttendances.length > 0) {
+                await addAttendancesBatch(roomNewAttendances);
+            }
         }
-    }
-    
-    if (allNewAttendances.length > 0) {
-        await addAttendancesBatch(allNewAttendances);
     }
 
     return NextResponse.json({ success: true, message: `Created ${totalCreated} fake attendance records!` });
