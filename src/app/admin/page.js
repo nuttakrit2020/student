@@ -2081,6 +2081,33 @@ export default function AdminPage() {
                 >
                   📥 ส่งออก Excel
                 </button>
+
+                <button
+                  className="btn btn-sm"
+                  style={{ width: 'auto', padding: '6px 16px', fontSize: '0.9rem', whiteSpace: 'nowrap', background: '#9c27b0', color: 'white', border: 'none', borderRadius: '8px' }}
+                  onClick={async () => {
+                    if (!confirm('ยืนยันที่จะดึงจำนวน ขาด/ลา จากใน Google Sheet มาสุ่มสร้างเป็นวันขาด/ลา ในระบบหรือไม่? (ข้อมูลการเช็คชื่อทั้งหมดจะถูกลบและสร้างใหม่)')) return;
+                    addToast('กำลังดึงข้อมูลและสุ่มวันขาด/ลา กรุณารอสักครู่ (อาจใช้เวลา 1-2 นาที)...', 'info');
+                    try {
+                      const res = await fetch('/api/generate-fake', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ adminKey })
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        addToast(`สำเร็จ: ${data.message || 'สร้างข้อมูลจำลองเรียบร้อย'}`, 'success');
+                        fetchData(adminKey, selectedSubject);
+                      } else {
+                        addToast(`ผิดพลาด: ${data.error}`, 'error');
+                      }
+                    } catch (err) {
+                      addToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                    }
+                  }}
+                >
+                  🎲 สุ่มวันขาด/ลาตาม Sheet
+                </button>
               </div>
 
               <div className="table-responsive">
