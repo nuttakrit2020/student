@@ -496,14 +496,16 @@ export async function addAttendance(attendance) {
 
 export async function addAttendancesBatch(atts) {
   if (db) {
-    for (let i = 0; i < atts.length; i += 400) {
-      const chunk = atts.slice(i, i + 400);
+    const batchPromises = [];
+    for (let i = 0; i < atts.length; i += 100) {
+      const chunk = atts.slice(i, i + 100);
       const batch = writeBatch(db);
       for (const a of chunk) {
         batch.set(doc(db, 'attendances', a.id), a);
       }
-      await batch.commit();
+      batchPromises.push(batch.commit());
     }
+    await Promise.all(batchPromises);
     return atts;
   }
   // Fallback for JSON
@@ -526,8 +528,9 @@ export async function deleteAttendance(id) {
 
 export async function deleteAttendancesBatch(ids) {
   if (db) {
-    for (let i = 0; i < ids.length; i += 400) {
-      const chunk = ids.slice(i, i + 400);
+    const batchPromises = [];
+    for (let i = 0; i < ids.length; i += 100) {
+      const chunk = ids.slice(i, i + 100);
       const batch = writeBatch(db);
       for (const id of chunk) {
         batch.delete(doc(db, 'attendances', id));
