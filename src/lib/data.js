@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { db } from './firebase';
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, query, where } from 'firebase/firestore';
 
 const dataDir = path.join(process.cwd(), 'data');
 
@@ -539,6 +539,29 @@ export async function deleteAttendancesBatch(ids) {
   const attendances = readJSON('attendances.json');
   const idSet = new Set(ids);
   const filtered = attendances.filter(a => !idSet.has(a.id));
+  writeJSON('attendances.json', filtered);
+}
+
+export async function deleteAttendancesForStudents(studentIds) {
+  const idArray = Array.from(studentIds);
+  if (idArray.length === 0) return;
+  
+  if (db) {
+    let toDeleteIds = [];
+    for (let i = 0; i < idArray.length; i += 30) {
+      const chunk = idArray.slice(i, i + 30);
+      const q = query(collection(db, 'attendances'), where('studentId', 'in', chunk));
+      const snapshot = await getDocs(q);
+      snapshot.docs.forEach(d => toDeleteIds.push(d.id));
+    }
+    if (toDeleteIds.length > 0) {
+      await deleteAttendancesBatch(toDeleteIds);
+    }
+    return;
+  }
+  const attendances = readJSON('attendances.json');
+  const idSet = new Set(idArray);
+  const filtered = attendances.filter(a => !idSet.has(a.studentId));
   writeJSON('attendances.json', filtered);
 }
 

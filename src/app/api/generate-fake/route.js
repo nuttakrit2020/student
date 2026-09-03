@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSubjects, addAttendancesBatch, getAttendances, deleteAttendancesBatch, getSettings } from '@/lib/data';
+import { getSubjects, addAttendancesBatch, deleteAttendancesForStudents, getSettings } from '@/lib/data';
 import Papa from 'papaparse';
 
 export const maxDuration = 60; // Allow up to 60 seconds
@@ -20,9 +20,6 @@ export async function POST(request) {
     const today = new Date();
     today.setHours(0,0,0,0);
     const startDate = new Date('2026-05-18T00:00:00+07:00');
-    
-    // Fetch all current attendances once to filter per room
-    const allAtt = await getAttendances();
 
     for (const subject of subjects) {
         if (!subject.googleSheetUrls) continue;
@@ -40,7 +37,6 @@ export async function POST(request) {
             const roomDays = [];
             if (subject.classSchedules) {
                 subject.classSchedules.forEach(sched => {
-                   const cleanedRoomKey = roomKey.replace(/^ม\.?\s*/, '').trim();
                    const cleanedSchedRoom = (sched.room || '').replace(/^ม\.?\s*/, '').trim();
                    if (cleanedRoomKey === cleanedSchedRoom || sched.room === roomKey) {
                        roomDays.push(sched.day);
@@ -161,10 +157,9 @@ export async function POST(request) {
                 }
             }
 
-            // 1. Delete existing attendances ONLY for students of this room
-            const toDeleteIds = allAtt.filter(a => roomStudentIds.has(a.studentId)).map(a => a.id);
-            if (toDeleteIds.length > 0) {
-                await deleteAttendancesBatch(toDeleteIds);
+            // 1. Delete existing attendances ONLY for students of this room using fast indexed Firestore query
+            if (roomStudentIds.size > 0) {
+                await deleteAttendancesForStudents(roomStudentIds);
             }
 
             // 2. Add new attendances for this room
