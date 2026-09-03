@@ -2082,7 +2082,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {studentsForRoom.map(student => {
+                    {studentsForRoom.map((student, index) => {
                         const roomScheds = getNormalizedSchedules(roomSchedules).filter(s => {
                           const cleanedRoom = (student.room || '').replace(/^ม\.?\s*/, '').trim();
                           return s.room === cleanedRoom || s.room === student.room;
@@ -2112,7 +2112,7 @@ export default function AdminPage() {
                         
                         return (
                           <tr key={student.id}>
-                            <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>{student.number || '-'}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>{index + 1}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>{student.studentId || student.id}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', whiteSpace: 'nowrap' }}>{student.name || '-'}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>{totalClassDays}</td>
