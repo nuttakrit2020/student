@@ -28,7 +28,11 @@ export async function POST(request) {
         if (!subject.googleSheetUrls) continue;
 
         for (const [roomKey, sheetUrl] of Object.entries(subject.googleSheetUrls)) {
-            if (targetRoomKey && roomKey !== targetRoomKey) continue;
+            const cleanedRoomKey = roomKey.replace(/^ม\.?\s*/, '').trim();
+            if (targetRoomKey) {
+                const cleanedTarget = targetRoomKey.replace(/^ม\.?\s*/, '').trim();
+                if (cleanedRoomKey !== cleanedTarget) continue;
+            }
 
             let roomNewAttendances = [];
             
