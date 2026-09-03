@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getSubjects, addAttendancesBatch, deleteAttendancesForStudents, getSettings } from '@/lib/data';
+import { getSubjects, addAttendancesBatch, deleteAttendancesBatch, getSettings, getAttendances } from '@/lib/data';
 import Papa from 'papaparse';
 
-export const maxDuration = 60; // Allow up to 60 seconds
+export const maxDuration = 60;
 
 export async function POST(request) {
   try {
@@ -21,6 +21,9 @@ export async function POST(request) {
     today.setHours(0,0,0,0);
     const startDate = new Date('2026-05-18T00:00:00+07:00');
 
+    // Fetch existing attendances once
+    const allAtt = await getAttendances();
+
     for (const subject of subjects) {
         if (!subject.googleSheetUrls) continue;
 
@@ -31,8 +34,6 @@ export async function POST(request) {
                 if (cleanedRoomKey !== cleanedTarget) continue;
             }
 
-            let roomNewAttendances = [];
-            
             // Find class days specific to this room
             const roomDays = [];
             if (subject.classSchedules) {
@@ -51,8 +52,7 @@ export async function POST(request) {
                 const dateStrIso = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2, '0')}-${String(currDate.getDate()).padStart(2, '0')}`;
                 if (roomDays.length === 0 || roomDays.includes(currDate.getDay())) {
                     if (!holidays.includes(dateStrIso)) {
-                        // Use exact 08:00:00+07:00 format
-                        validDates.push(`${dateStrIso}T08:00:00+07:00`);
+                        validDates.push(dateStrIso);
                     }
                 }
                 currDate.setDate(currDate.getDate() + 1);
@@ -88,6 +88,8 @@ export async function POST(request) {
             const sheetData = parsed.data;
 
             const roomStudentIds = new Set();
+            const toSave = [];
+            const toDeleteDocIds = [];
 
             for (const row of sheetData) {
                 const studentIdVal = Object.values(row).find(v => v && String(v).length >= 4 && !isNaN(parseInt(v)));
@@ -115,14 +117,23 @@ export async function POST(request) {
                     [studentDates[i], studentDates[j]] = [studentDates[j], studentDates[i]];
                 }
 
-                let datesIdx = 0;
+                let idx = 0;
                 
-                // Skip numKhad
-                datesIdx += numKhad;
+                // 1. Absent dates (delete deterministic doc)
+                for (let i = 0; i < numKhad && idx < studentDates.length; i++) {
+                    const dateIso = studentDates[idx];
+                    const docId = `fake_${subject.id}_${studentId}_${dateIso}`;
+                    toDeleteDocIds.push(docId);
+                    idx++;
+                }
 
-                for (let i = 0; i < numLa && datesIdx < studentDates.length; i++) {
-                    roomNewAttendances.push({
-                        id: crypto.randomUUID(),
+                // 2. Leave dates
+                for (let i = 0; i < numLa && idx < studentDates.length; i++) {
+                    const dateIso = studentDates[idx];
+                    const docId = `fake_${subject.id}_${studentId}_${dateIso}`;
+                    const timestamp = `${dateIso}T08:00:00+07:00`;
+                    toSave.push({
+                        id: docId,
                         studentId,
                         subjectId: subject.id,
                         type: 'leave',
@@ -131,40 +142,46 @@ export async function POST(request) {
                         isOk: null,
                         status: 'approved',
                         photo: '',
-                        timestamp: studentDates[datesIdx],
-                        createdAt: studentDates[datesIdx]
+                        timestamp,
+                        createdAt: timestamp
                     });
                     totalCreated++;
-                    datesIdx++;
+                    idx++;
                 }
 
-                while (datesIdx < studentDates.length) {
-                    roomNewAttendances.push({
-                        id: crypto.randomUUID(),
+                // 3. Present dates
+                while (idx < studentDates.length) {
+                    const dateIso = studentDates[idx];
+                    const docId = `fake_${subject.id}_${studentId}_${dateIso}`;
+                    const timestamp = `${dateIso}T08:00:00+07:00`;
+                    toSave.push({
+                        id: docId,
                         studentId,
                         subjectId: subject.id,
                         type: 'present',
                         reason: '',
                         lat: null, lng: null, distance: null,
-                        isOk: true, // GREEN
+                        isOk: true,
                         status: 'approved',
                         photo: '',
-                        timestamp: studentDates[datesIdx],
-                        createdAt: studentDates[datesIdx]
+                        timestamp,
+                        createdAt: timestamp
                     });
                     totalCreated++;
-                    datesIdx++;
+                    idx++;
                 }
             }
 
-            // 1. Delete existing attendances ONLY for students of this room using fast indexed Firestore query
-            if (roomStudentIds.size > 0) {
-                await deleteAttendancesForStudents(roomStudentIds);
+            // Also delete any existing old non-deterministic attendances for these students
+            const oldRoomAttIds = allAtt.filter(a => roomStudentIds.has(a.studentId) && !a.id.startsWith('fake_')).map(a => a.id);
+            const allDeleteIds = [...oldRoomAttIds, ...toDeleteDocIds];
+
+            if (allDeleteIds.length > 0) {
+                await deleteAttendancesBatch(allDeleteIds);
             }
 
-            // 2. Add new attendances for this room
-            if (roomNewAttendances.length > 0) {
-                await addAttendancesBatch(roomNewAttendances);
+            if (toSave.length > 0) {
+                await addAttendancesBatch(toSave);
             }
         }
     }
