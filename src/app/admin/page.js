@@ -779,7 +779,7 @@ export default function AdminPage() {
         const roomA = a.student.room || '';
         const roomB = b.student.room || '';
         if (roomA !== roomB) return roomA.localeCompare(roomB, 'th');
-        return (a.student.id || '').localeCompare(b.student.id || '');
+        return (a.student.name || '').localeCompare(b.student.name || '', 'th');
       })
       .map((row, idx) => {
         // Use pre-computed attendance stats
@@ -1746,7 +1746,8 @@ export default function AdminPage() {
                     // unique rooms for filter
           const rooms = [...new Set(summaryData.map(s => s.student.room || '').filter(Boolean))].sort();
           // filtered students
-          const filteredStudents = filterRoom ? summaryData.filter(s => s.student.room === filterRoom) : summaryData;
+          const filteredStudents = (filterRoom ? summaryData.filter(s => s.student.room === filterRoom) : summaryData)
+            .sort((a, b) => (a.student.name || '').localeCompare(b.student.name || '', 'th'));
           
           return (
             <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
@@ -2029,7 +2030,7 @@ export default function AdminPage() {
              const sRoom = (s.room || '').replace(/^ม\.?\s*/, '').trim();
              const targetRoom = filterSummaryRoom.replace(/^ม\.?\s*/, '').trim();
              return sRoom === targetRoom;
-          });
+          }).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th'));
 
           // Use fixed term start date (18 May 2026)
           const startOfTerm = new Date('2026-05-18T00:00:00+07:00');
@@ -2138,7 +2139,8 @@ export default function AdminPage() {
         {activeTab === 'calendar' && (() => {
           const rooms = data?.students ? [...new Set(data.students.map(s => s.room || '').filter(Boolean))].sort() : [];
           const students = data?.students || [];
-          const filteredStudents = calendarRoom ? students.filter(s => s.room === calendarRoom) : students;
+          const filteredStudents = (calendarRoom ? students.filter(s => s.room === calendarRoom) : students)
+            .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th'));
 
           // Calculate week dates
           const now = new Date();
