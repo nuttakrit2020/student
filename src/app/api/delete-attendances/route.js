@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAttendances, deleteAttendancesBatch } from '@/lib/data';
 
+export const maxDuration = 60; // Allow up to 60 seconds
+
 export async function POST(request) {
   try {
     const { adminKey } = await request.json();

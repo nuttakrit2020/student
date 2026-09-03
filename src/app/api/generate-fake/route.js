@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSubjects, addAttendancesBatch, getSettings } from '@/lib/data';
 import Papa from 'papaparse';
 
+export const maxDuration = 60; // Allow up to 60 seconds
+
 export async function POST(request) {
   try {
     const { adminKey, targetRoomKey } = await request.json();
