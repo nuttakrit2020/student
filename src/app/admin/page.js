@@ -1567,7 +1567,13 @@ export default function AdminPage() {
             className={`nav-btn ${activeTab === 'attendance' ? 'active' : ''}`}
             onClick={() => setActiveTab('attendance')}
           >
-            📍 ประวัติเช็คชื่อ
+            📍 ประวัติเช็คชื่อรายวัน
+          </button>
+          <button
+            className={`nav-btn ${activeTab === 'attendance_summary' ? 'active' : ''}`}
+            onClick={() => setActiveTab('attendance_summary')}
+          >
+            📋 สรุปเวลาเรียน (ขาด/ลา/มา)
           </button>
           <button
             className={`nav-btn ${activeTab === 'calendar' ? 'active' : ''}`}
@@ -1605,98 +1611,6 @@ export default function AdminPage() {
                     ));
                   })()}
                 </select>
-                <button
-                  className="btn btn-sm"
-                  style={{ width: 'auto', padding: '6px 16px', fontSize: '0.9rem', whiteSpace: 'nowrap', background: '#34a853', color: 'white', border: 'none' }}
-                  onClick={async () => {
-                     if (!googleAppScriptUrl) {
-                        return MySwal.fire({ icon: 'warning', title: 'ยังไม่ได้ตั้งค่า API', text: 'กรุณาตั้งค่า Google Apps Script URL ในหน้าตั้งค่าก่อนครับ' });
-                     }
-                     const room = filterSummaryRoom || Object.keys(googleSheetUrls)[0];
-                     if (!room) return MySwal.fire({ icon: 'error', title: 'ไม่พบข้อมูลห้องเรียน' });
-                     
-                     let sheetUrl = googleSheetUrls[room] || googleSheetUrls['default'];
-                     if (!sheetUrl) {
-                        const cleanedTarget = room.replace(/^ม\.?\s*/, '').trim();
-                        for (const [k, url] of Object.entries(googleSheetUrls)) {
-                           if (k.replace(/^ม\.?\s*/, '').trim() === cleanedTarget) {
-                              sheetUrl = url;
-                              break;
-                           }
-                        }
-                     }
-                     if (!sheetUrl) return MySwal.fire({ icon: 'error', title: 'ไม่พบลิงก์ Google Sheet สำหรับห้องนี้' });
-
-                     MySwal.fire({
-                        title: 'กำลังซิงค์ข้อมูล...',
-                        html: 'กำลังคำนวณและส่งยอด ขาด/มา ลง Google Sheet<br>กรุณารอสักครู่...',
-                        allowOutsideClick: false,
-                        didOpen: () => MySwal.showLoading()
-                     });
-
-                     const studentsForRoom = summaryData.filter(s => {
-                        if (!room) return true;
-                        const sRoom = (s.student.room || '').replace(/^ม\.?\s*/, '').trim();
-                        const targetRoom = room.replace(/^ม\.?\s*/, '').trim();
-                        return sRoom === targetRoom;
-                     }).map(s => s.student);
-                     
-                     const startOfWeek = new Date();
-                     startOfWeek.setHours(0,0,0,0);
-                     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
-                     const endOfWeek = new Date(startOfWeek);
-                     endOfWeek.setDate(startOfWeek.getDate() + 4);
-
-                     const updates = studentsForRoom.map(student => {
-                        const roomScheds = getNormalizedSchedules(classSchedules).filter(s => {
-                          const cleanedRoom = (student.room || '').replace(/^ม\.?\s*/, '').trim();
-                          return s.room === cleanedRoom || s.room === student.room;
-                        });
-                        const classDays = roomScheds.map(s => s.day);
-                        
-                        let khadCount = 0;
-                        let laCount = 0;
-                        let totalClassDays = 0;
-                        
-                        for (let d = new Date(startOfWeek); d <= endOfWeek; d.setDate(d.getDate() + 1)) {
-                           const jsDay = d.getDay() === 0 ? 7 : d.getDay();
-                           const dateStrIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                           if (classDays.length > 0 && (!classDays.includes(jsDay) || holidays.includes(dateStrIso))) continue;
-                           if (d <= new Date()) totalClassDays++;
-                           const dateStr = d.toLocaleDateString('th-TH');
-                           const att = attendances.find(a => a.studentId === student.id && new Date(a.timestamp).toLocaleDateString('th-TH') === dateStr);
-                           if (att) {
-                              if (att.type === 'leave') laCount++;
-                           } else {
-                              if (d < new Date()) khadCount++;
-                           }
-                        }
-                        
-                        const totalKhad = khadCount + (laCount * 0.5);
-                        const totalMa = totalClassDays - totalKhad;
-                        
-                        return { studentId: student.id, khad: totalKhad, ma: totalMa };
-                     });
-
-                     try {
-                        const res = await fetch('/api/sync-sheet', {
-                           method: 'POST',
-                           headers: { 'Content-Type': 'application/json' },
-                           body: JSON.stringify({ adminKey, sheetUrl, updates, appScriptUrl: googleAppScriptUrl })
-                        });
-                        const result = await res.json();
-                        if (result.error) {
-                           MySwal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: result.error });
-                        } else {
-                           MySwal.fire({ icon: 'success', title: 'ซิงค์ข้อมูลสำเร็จ!', text: `อัปเดตข้อมูลนักเรียน ${result.updated} คน ลงใน Google Sheet เรียบร้อยแล้ว` });
-                        }
-                     } catch (err) {
-                        MySwal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.message });
-                     }
-                  }}
-                >
-                  🔄 ซิงค์ยอด ขาด/มา ลง Sheet
-                </button>
                 <button
                   className="btn btn-sm btn-primary"
                   onClick={handleExportExcel}
@@ -2087,6 +2001,133 @@ export default function AdminPage() {
             )}
           </div>
         )
+        })()}
+
+        {activeTab === 'attendance_summary' && (() => {
+          const rooms = data?.students ? [...new Set(data.students.map(s => s.room || '').filter(Boolean))].sort() : [];
+          const students = data?.students || [];
+          const allAttendances = data?.attendances || [];
+          const roomSchedules = classSchedules || [];
+          const hols = holidays || [];
+          
+          const studentsForRoom = students.filter(s => {
+             if (!filterSummaryRoom) return true;
+             const sRoom = (s.room || '').replace(/^ม\.?\s*/, '').trim();
+             const targetRoom = filterSummaryRoom.replace(/^ม\.?\s*/, '').trim();
+             return sRoom === targetRoom;
+          });
+
+          let earliestDate = new Date();
+          if (allAttendances.length > 0) {
+             const dates = allAttendances.map(a => new Date(a.timestamp).getTime());
+             earliestDate = new Date(Math.min(...dates));
+          } else {
+             earliestDate.setDate(earliestDate.getDate() - 30);
+          }
+          
+          const startOfTerm = earliestDate;
+          startOfTerm.setHours(0,0,0,0);
+          
+          const today = new Date();
+          today.setHours(23,59,59,999);
+
+          return (
+            <div className="card" style={{ animation: 'fadeIn 0.3s ease' }}>
+              <div className="card-header" style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>📋 สรุปเวลาเรียน (ขาด/ลา/มา)</h2>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '20px' }}>
+                <select
+                  className="form-input"
+                  style={{ padding: '6px 12px', width: 'auto', minWidth: '180px', fontSize: '0.95rem', fontWeight: 600 }}
+                  value={filterSummaryRoom}
+                  onChange={e => setFilterSummaryRoom(e.target.value)}
+                >
+                  <option value="">🏫 ทุกห้องเรียน</option>
+                  {rooms.map(room => (
+                    <option key={room} value={room}>ห้อง {room}</option>
+                  ))}
+                </select>
+                
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={() => {
+                     const html = document.getElementById('attendance-summary-table').outerHTML;
+                     const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+                     const url = URL.createObjectURL(blob);
+                     const a = document.createElement('a');
+                     a.href = url;
+                     a.download = `สรุปเวลาเรียน_${filterSummaryRoom || 'ทั้งหมด'}.xls`;
+                     a.click();
+                  }}
+                  style={{ width: 'auto', padding: '6px 16px', fontSize: '0.9rem', whiteSpace: 'nowrap' }}
+                >
+                  📥 ส่งออก Excel
+                </button>
+              </div>
+
+              <div className="table-responsive">
+                <table id="attendance-summary-table" className="table" style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', border: '1px solid #ddd' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8f9fa' }}>
+                      <th style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center' }}>เลขที่</th>
+                      <th style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center' }}>รหัส</th>
+                      <th style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'left' }}>ชื่อ-สกุล</th>
+                      <th style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center' }}>วันที่มีเรียนทั้งหมด</th>
+                      <th style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center', color: '#34a853' }}>มา (วัน)</th>
+                      <th style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center', color: '#fbbc05' }}>ลา (วัน)</th>
+                      <th style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center', color: '#ea4335' }}>ขาด (วัน)</th>
+                      <th style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>สรุปคะแนนขาด</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentsForRoom.map(student => {
+                        const roomScheds = getNormalizedSchedules(roomSchedules).filter(s => {
+                          const cleanedRoom = (student.room || '').replace(/^ม\.?\s*/, '').trim();
+                          return s.room === cleanedRoom || s.room === student.room;
+                        });
+                        const classDays = roomScheds.map(s => s.day);
+                        
+                        let khadCount = 0;
+                        let laCount = 0;
+                        let totalClassDays = 0;
+                        
+                        for (let d = new Date(startOfTerm); d <= today; d.setDate(d.getDate() + 1)) {
+                           const jsDay = d.getDay() === 0 ? 7 : d.getDay();
+                           const dateStrIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                           if (classDays.length > 0 && (!classDays.includes(jsDay) || hols.includes(dateStrIso))) continue;
+                           totalClassDays++;
+                           const dateStr = d.toLocaleDateString('th-TH');
+                           const att = allAttendances.find(a => a.studentId === student.id && new Date(a.timestamp).toLocaleDateString('th-TH') === dateStr);
+                           if (att) {
+                              if (att.type === 'leave') laCount++;
+                           } else {
+                              khadCount++;
+                           }
+                        }
+                        
+                        const totalKhad = khadCount + (laCount * 0.5);
+                        const totalMa = totalClassDays - totalKhad;
+                        
+                        return (
+                          <tr key={student.id}>
+                            <td style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center' }}>{student.number || '-'}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center' }}>{student.studentId || student.id}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'left' }}>{student.prefix}{student.firstName} {student.lastName}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center' }}>{totalClassDays}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center', color: '#34a853', fontWeight: 600 }}>{totalMa}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center', color: '#fbbc05', fontWeight: 600 }}>{laCount}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center', color: '#ea4335', fontWeight: 600 }}>{khadCount}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>{totalKhad}</td>
+                          </tr>
+                        );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
         })()}
 
         {activeTab === 'calendar' && (() => {
@@ -2753,20 +2794,6 @@ export default function AdminPage() {
 
 
               
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '12px' }}>🤖 ระบบเชื่อมต่อ (API)</h3>
-                <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 600 }}>🔗 Google Apps Script URL (สำหรับซิงค์ยอดขาด/ลา ลง Google Sheet)</label>
-                  <input 
-                    type="url" 
-                    className="form-input" 
-                    placeholder="https://script.google.com/macros/s/..." 
-                    value={googleAppScriptUrl} 
-                    onChange={e => setGoogleAppScriptUrl(e.target.value)} 
-                  />
-                  <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>ดูวิธีตั้งค่าได้ที่คู่มือทางด้านขวามือ (Artifact)</small>
-                </div>
-              </div>
               
               <div style={{ marginBottom: '24px' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '12px' }}>🏖️ วันหยุด / วันยกเลิกคลาส (ระบบจะไม่นับขาดในวันนี้)</h3>
