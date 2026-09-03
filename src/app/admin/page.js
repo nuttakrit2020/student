@@ -2084,32 +2084,10 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {studentsForRoom.map((student, index) => {
-                        const roomScheds = getNormalizedSchedules(roomSchedules).filter(s => {
-                          const cleanedRoom = (student.room || '').replace(/^ม\.?\s*/, '').trim();
-                          return s.room === cleanedRoom || s.room === student.room;
-                        });
-                        const classDays = roomScheds.map(s => s.day);
-                        
-                        let khadCount = 0;
-                        let laCount = 0;
-                        let totalClassDays = 0;
-                        
-                        if (classDays.length > 0) {
-                            for (let d = new Date(startOfTerm); d <= today; d.setDate(d.getDate() + 1)) {
-                               const jsDay = d.getDay() === 0 ? 7 : d.getDay();
-                               const dateStrIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                               if (!classDays.includes(jsDay) || hols.includes(dateStrIso)) continue;
-                               totalClassDays++;
-                               
-                               const att = attIndex[`${student.id}_${dateStrIso}`];
-                               
-                               if (att) {
-                                  if (att.type === 'leave') laCount++;
-                               } else {
-                                  khadCount++;
-                               }
-                            }
-                        }
+                        const stats = attendanceStats[student.id] || { present: 0, leave: 0, absent: 0 };
+                        const totalClassDays = stats.present + stats.leave + stats.absent;
+                        const laCount = stats.leave;
+                        const khadCount = stats.absent;
                         
                         const totalKhad = khadCount + (laCount * 0.5);
                         const totalMa = totalClassDays - totalKhad;
