@@ -2076,10 +2076,10 @@ export default function AdminPage() {
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>รหัส</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left' }}>ชื่อ-สกุล</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>วันที่มีเรียนทั้งหมด</th>
-                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853' }}>มา (วัน)</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#fbbc05' }}>ลา (วัน)</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#ea4335' }}>ขาด (วัน)</th>
-                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>รวมหักคะแนน</th>
+                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>มาเรียนจริง (คาบ)</th>
+                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>สรุปขาด (คะแนน)</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>คะแนนจิตพิสัย (เต็ม 10)</th>
                     </tr>
                   </thead>
@@ -2106,9 +2106,9 @@ export default function AdminPage() {
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>{student.studentId || student.id}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left', whiteSpace: 'nowrap' }}>{student.name || '-'}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>{totalClassDays}</td>
-                            <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 600 }}>{maCount}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#fbbc05', fontWeight: 600 }}>{laCount}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#ea4335', fontWeight: 600 }}>{khadCount}</td>
+                            <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>{maCount}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold', color: deductedPoints > 0 ? '#ea4335' : 'inherit' }}>{deductedPoints > 0 ? `-${deductedPoints}` : '0'}</td>
                             <td style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>{behaviorScore}</td>
                           </tr>
