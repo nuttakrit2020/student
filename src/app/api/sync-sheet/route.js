@@ -4,7 +4,7 @@ import { getSettings } from '@/lib/data';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { adminKey, sheetUrl, updates } = body;
+    const { adminKey, sheetUrl, updates, appScriptUrl: bodyAppScriptUrl } = body;
 
     if (adminKey !== 'admin2569') {
       return NextResponse.json({ error: 'ไม่มีสิทธิ์เข้าถึง' }, { status: 403 });
@@ -14,7 +14,7 @@ export async function POST(request) {
     }
 
     const settings = await getSettings();
-    const appScriptUrl = settings?.googleAppScriptUrl;
+    const appScriptUrl = bodyAppScriptUrl || settings?.googleAppScriptUrl;
     if (!appScriptUrl) {
       return NextResponse.json({ error: 'ยังไม่ได้ตั้งค่า Google Apps Script URL' }, { status: 400 });
     }

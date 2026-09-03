@@ -1682,7 +1682,7 @@ export default function AdminPage() {
                         const res = await fetch('/api/sync-sheet', {
                            method: 'POST',
                            headers: { 'Content-Type': 'application/json' },
-                           body: JSON.stringify({ adminKey, sheetUrl, updates })
+                           body: JSON.stringify({ adminKey, sheetUrl, updates, appScriptUrl: googleAppScriptUrl })
                         });
                         const result = await res.json();
                         if (result.error) {
