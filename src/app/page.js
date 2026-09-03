@@ -171,7 +171,9 @@ export default function LoginPage() {
           </>
         ) : (
           <>
-            <div className="login-icon">👨‍🏫</div>
+            <div className="login-icon" style={{ overflow: 'hidden', padding: 0, background: 'transparent' }}>
+              <img src="/profile.png" alt="Teacher" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', boxShadow: '0 8px 16px rgba(0,0,0,0.1)' }} />
+            </div>
             <h1>เข้าสู่ระบบครู</h1>
             <p className="subtitle">กรอกรหัสผ่านเพื่อจัดการงาน</p>
 
