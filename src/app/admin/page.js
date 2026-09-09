@@ -2091,7 +2091,7 @@ export default function AdminPage() {
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>รหัส</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'left' }}>ชื่อ-สกุล</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>วันที่มีเรียนทั้งหมด</th>
-                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>มาเรียนจริง (คาบ)</th>
+                      <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#34a853', fontWeight: 'bold' }}>มาเรียน (คาบ)</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#fbbc05' }}>ลา (วัน)</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', color: '#ea4335' }}>ขาด (วัน)</th>
                       <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>สรุปขาด (คะแนน)</th>
