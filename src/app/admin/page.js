@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import { db } from '@/lib/firebase';
-import { doc, writeBatch } from 'firebase/firestore';
 
 const MySwal = withReactContent(Swal);
 
@@ -2088,7 +2086,7 @@ export default function AdminPage() {
                   className="btn btn-sm"
                   style={{ width: 'auto', padding: '6px 16px', fontSize: '0.9rem', whiteSpace: 'nowrap', background: '#9c27b0', color: 'white', border: 'none', borderRadius: '8px' }}
                   onClick={async () => {
-                    if (!confirm('ยืนยันที่จะดึงจำนวน ขาด/ลา จากใน Google Sheet มาสุ่มสร้างเป็นวันขาด/ลา ในระบบหรือไม่? (ข้อมูลการเช็คชื่อทั้งหมดจะถูกปรับให้ตรงตาม Sheet)')) return;
+                    if (!confirm('ยืนยันที่จะดึงจำนวน ขาด/ลา จากใน Google Sheet มาสุ่มสร้างเป็นวันขาด/ลา ในระบบหรือไม่?')) return;
                     
                     try {
                       if (!subjects.length || !subjects[0].googleSheetUrls) {
@@ -2110,9 +2108,9 @@ export default function AdminPage() {
                         const sheetUrl = sheetUrls[roomKey];
                         const cleanedRoomKey = roomKey.replace(/^ม\.?\s*/, '').trim();
 
-                        addToast(`กำลังดึงข้อมูลและสุ่มวันขาด/ลา ห้อง ${roomKey} (${roomIdx + 1}/${rooms.length})...`, 'info');
+                        addToast(`กำลังดึงข้อมูล ห้อง ${roomKey} (${roomIdx + 1}/${rooms.length})...`, 'info');
 
-                        // 1. Fetch CSV data via proxy
+                        // 1. Fetch CSV via server proxy
                         const parseRes = await fetch('/api/parse-sheet', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
@@ -2120,7 +2118,7 @@ export default function AdminPage() {
                         });
                         const parseData = await parseRes.json();
                         if (!parseRes.ok || !parseData.data) {
-                          addToast(`ข้ามห้อง ${roomKey}: ไม่สามารถอ่านข้อมูล Sheet ได้`, 'error');
+                          addToast(`ข้ามห้อง ${roomKey}: อ่าน Sheet ไม่ได้`, 'error');
                           continue;
                         }
 
@@ -2135,7 +2133,7 @@ export default function AdminPage() {
                           });
                         }
 
-                        // 3. Calculate valid dates for this room
+                        // 3. Calculate valid dates
                         const validDates = [];
                         let currDate = new Date(startDate);
                         while (currDate < today) {
@@ -2148,9 +2146,9 @@ export default function AdminPage() {
                           currDate.setDate(currDate.getDate() + 1);
                         }
 
-                        // 4. Generate records for each student in room
+                        // 4. Generate records for each student
                         const toSave = [];
-                        const toDeleteDocIds = [];
+                        const toDeleteIds = [];
 
                         for (const row of parseData.data) {
                           const studentIdVal = Object.values(row).find(v => v && String(v).length >= 4 && !isNaN(parseInt(v)));
@@ -2160,16 +2158,15 @@ export default function AdminPage() {
                           const rawKhad = row['ขาด'] || '0';
                           const khadNum = parseFloat(rawKhad);
 
+                          // .5 = ลา 1 ครั้ง, จำนวนเต็ม = ขาด
                           let numLa = 0;
                           let numKhad = 0;
-
-                          if (khadNum === 0.5) numLa = 1;
-                          else if (khadNum > 0 && khadNum % 1 === 0) numKhad = khadNum;
-                          else if (khadNum > 0) {
+                          if (khadNum > 0) {
                             numKhad = Math.floor(khadNum);
-                            numLa = (khadNum - numKhad) === 0.5 ? 1 : 0;
+                            numLa = (khadNum % 1 >= 0.5) ? 1 : 0;
                           }
 
+                          // Shuffle dates
                           const studentDates = [...validDates];
                           for (let i = studentDates.length - 1; i > 0; i--) {
                             const j = Math.floor(Math.random() * (i + 1));
@@ -2177,80 +2174,84 @@ export default function AdminPage() {
                           }
 
                           let idx = 0;
+                          // Absent dates = no record (delete)
                           for (let i = 0; i < numKhad && idx < studentDates.length; i++) {
-                            const dateIso = studentDates[idx];
-                            toDeleteDocIds.push(`fake_${currentSubject.id}_${studentId}_${dateIso}`);
+                            toDeleteIds.push(`fake_${currentSubject.id}_${studentId}_${studentDates[idx]}`);
                             idx++;
                           }
-
+                          // Leave dates
                           for (let i = 0; i < numLa && idx < studentDates.length; i++) {
                             const dateIso = studentDates[idx];
-                            const timestamp = `${dateIso}T08:00:00+07:00`;
                             toSave.push({
                               id: `fake_${currentSubject.id}_${studentId}_${dateIso}`,
-                              studentId,
-                              subjectId: currentSubject.id,
-                              type: 'leave',
-                              reason: 'ลากิจ/ลาป่วย',
-                              lat: null, lng: null, distance: null,
-                              isOk: null,
-                              status: 'approved',
-                              photo: '',
-                              timestamp,
-                              createdAt: timestamp
+                              studentId, subjectId: currentSubject.id,
+                              type: 'leave', reason: 'ลากิจ/ลาป่วย',
+                              lat: null, lng: null, distance: null, isOk: null,
+                              status: 'approved', photo: '',
+                              timestamp: `${dateIso}T08:00:00+07:00`,
+                              createdAt: `${dateIso}T08:00:00+07:00`
                             });
                             idx++;
                           }
-
+                          // Present dates
                           while (idx < studentDates.length) {
                             const dateIso = studentDates[idx];
-                            const timestamp = `${dateIso}T08:00:00+07:00`;
                             toSave.push({
                               id: `fake_${currentSubject.id}_${studentId}_${dateIso}`,
-                              studentId,
-                              subjectId: currentSubject.id,
-                              type: 'present',
-                              reason: '',
-                              lat: null, lng: null, distance: null,
-                              isOk: true,
-                              status: 'approved',
-                              photo: '',
-                              timestamp,
-                              createdAt: timestamp
+                              studentId, subjectId: currentSubject.id,
+                              type: 'present', reason: '',
+                              lat: null, lng: null, distance: null, isOk: true,
+                              status: 'approved', photo: '',
+                              timestamp: `${dateIso}T08:00:00+07:00`,
+                              createdAt: `${dateIso}T08:00:00+07:00`
                             });
                             idx++;
                           }
                         }
 
-                        // 5. Execute Firestore batch commits using client-side Firestore!
-                        if (db) {
-                          const batchPromises = [];
-                          
-                          // Delete absent docs
-                          for (let i = 0; i < toDeleteDocIds.length; i += 100) {
-                            const chunk = toDeleteDocIds.slice(i, i + 100);
-                            const b = writeBatch(db);
-                            chunk.forEach(id => b.delete(doc(db, 'attendances', id)));
-                            batchPromises.push(b.commit());
-                          }
+                        // 5. Send to server in small batches (200 records max per call)
+                        const BATCH_SIZE = 200;
+                        const allSaveBatches = [];
+                        for (let i = 0; i < toSave.length; i += BATCH_SIZE) {
+                          allSaveBatches.push(toSave.slice(i, i + BATCH_SIZE));
+                        }
+                        const allDeleteBatches = [];
+                        for (let i = 0; i < toDeleteIds.length; i += BATCH_SIZE) {
+                          allDeleteBatches.push(toDeleteIds.slice(i, i + BATCH_SIZE));
+                        }
 
-                          // Save present/leave docs
-                          for (let i = 0; i < toSave.length; i += 100) {
-                            const chunk = toSave.slice(i, i + 100);
-                            const b = writeBatch(db);
-                            chunk.forEach(item => b.set(doc(db, 'attendances', item.id), item));
-                            batchPromises.push(b.commit());
+                        // Write saves
+                        for (let bi = 0; bi < allSaveBatches.length; bi++) {
+                          addToast(`ห้อง ${roomKey}: เขียนข้อมูล batch ${bi + 1}/${allSaveBatches.length}...`, 'info');
+                          const wRes = await fetch('/api/write-fake-batch', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ adminKey, toSave: allSaveBatches[bi], toDeleteIds: [] })
+                          });
+                          if (!wRes.ok) {
+                            const errData = await wRes.json().catch(() => ({}));
+                            addToast(`ห้อง ${roomKey} batch ${bi + 1} ผิดพลาด: ${errData.error || wRes.status}`, 'error');
                           }
+                        }
 
-                          await Promise.all(batchPromises);
+                        // Write deletes
+                        for (let bi = 0; bi < allDeleteBatches.length; bi++) {
+                          const wRes = await fetch('/api/write-fake-batch', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ adminKey, toSave: [], toDeleteIds: allDeleteBatches[bi] })
+                          });
+                          if (!wRes.ok) {
+                            addToast(`ห้อง ${roomKey} ลบ batch ${bi + 1} ผิดพลาด`, 'error');
+                          }
                         }
                       }
 
-                      addToast('สุ่มสร้างข้อมูลเวลาเรียนตรงตาม Sheet สำเร็จทุกห้อง!', 'success');
+                      addToast('สุ่มสร้างข้อมูลเวลาเรียนตรงตาม Sheet สำเร็จทุกห้อง! ✅', 'success');
                       fetchData(adminKey, selectedSubject);
                     } catch (err) {
-                      console.error(err);
-                      addToast('เกิดข้อผิดพลาดในการประมวลผล', 'error');
+                      console.error('Generate fake error:', err);
+                      addToast(`เกิดข้อผิดพลาด: ${err.message}`, 'error');
                     }
                   }}
                 >
